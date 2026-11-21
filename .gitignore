@@ -1,7 +1,9 @@
-frontend_latest/
-backend_latest/
+backend_latest/data
+backend_latest/database
+backend_latest/venv/
+
 node_modules/
-package-lock.json
 .initialized
 web/__pycache__
+__pycache__
 web/master_aed_dane_gov.csv

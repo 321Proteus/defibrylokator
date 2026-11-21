@@ -1,0 +1,81 @@
+<section class="container my-4" aria-labelledby="aed-title">
+  <h1 id="aed-title">{{ 'AedMap.Title' | translate }}</h1>
+  <p>{{ 'AedMap.Intro' | translate }}</p>
+  <p class="alert alert-warning" role="note">{{ 'AedMap.DemoWarning' | translate }}</p>
+
+  @if (loadError) {
+    <p class="alert alert-danger" role="alert">{{ 'AedMap.LoadError' | translate }}</p>
+  }
+
+  <form class="row g-3 align-items-end mb-3" (submit)="$event.preventDefault()">
+    <div class="col-12 col-md-4">
+      <label for="aed-city" class="form-label">{{ 'AedMap.FilterCity' | translate }}</label>
+      <select id="aed-city" class="form-select" [(ngModel)]="selectedCity" name="city" (change)="applyFilters(true)">
+        <option value="">{{ 'AedMap.AllCities' | translate }}</option>
+        @for (city of cities; track city) {
+          <option [value]="city">{{ city }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="form-check">
+        <input
+          id="aed-247"
+          type="checkbox"
+          class="form-check-input"
+          [(ngModel)]="only247"
+          name="only247"
+          (change)="applyFilters(true)" />
+        <label for="aed-247" class="form-check-label">{{ 'AedMap.Only247' | translate }}</label>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <button type="button" class="btn btn-primary" [disabled]="locating" (click)="findNearest()">
+        {{ 'AedMap.FindNearest' | translate }}
+      </button>
+    </div>
+  </form>
+
+  <p class="fw-bold" role="status" aria-live="polite">{{ statusMessage }}</p>
+
+  <div
+    #mapRef
+    class="aed-map"
+    role="application"
+    [attr.aria-label]="'AedMap.MapLabel' | translate"></div>
+
+  <ul class="list-inline mt-2" [attr.aria-label]="'AedMap.Legend' | translate">
+    @for (type of accessTypes; track type) {
+      <li class="list-inline-item">
+        <span class="aed-legend-dot" [style.background-color]="colors[type]" aria-hidden="true"></span>
+        {{ labelKeys[type] | translate }}
+      </li>
+    }
+  </ul>
+
+  <h2 class="mt-4">{{ 'AedMap.ListHeading' | translate }}</h2>
+  <p>{{ 'AedMap.ResultsCount' | translate: { count: visible.length } }}</p>
+  @if (!visible.length && !loadError) {
+    <p>{{ 'AedMap.NoResults' | translate }}</p>
+  }
+  <ul class="list-unstyled">
+    @for (p of visible; track p.id) {
+      <li class="border rounded p-3 mb-2">
+        <h3 class="h5 mb-1">{{ p.name }}</h3>
+        <p class="mb-1">{{ p.city }} &ndash; {{ p.description }}</p>
+        <p class="mb-1">
+          <span class="aed-legend-dot" [style.background-color]="colors[p.access]" aria-hidden="true"></span>
+          {{ labelKeys[p.access] | translate }} ({{ p.openingHours }}),
+          {{ (p.indoor ? 'AedMap.Indoor' : 'AedMap.Outdoor') | translate }}
+        </p>
+        <p class="mb-2 small">
+          {{ 'AedMap.Operator' | translate }}: {{ p.operator }} &middot; {{ 'AedMap.LastVerified' | translate }}:
+          {{ p.lastVerified }}
+        </p>
+        <button type="button" class="btn btn-outline-primary btn-sm" (click)="showOnMap(p)">
+          {{ 'AedMap.ShowOnMap' | translate }}<span class="visually-hidden">: {{ p.name }}</span>
+        </button>
+      </li>
+    }
+  </ul>
+</section>
