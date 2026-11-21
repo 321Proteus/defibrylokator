@@ -1,0 +1,321 @@
+:root {
+    --bg-color: #f4f6f9;
+    --card-bg: #ffffff;
+    --text-main: #111827;
+    --text-muted: #374151;
+    --primary: #0b4f6c;
+    --primary-hover: #08384d;
+    --focus-ring: #d97706;
+    --info-bg: #eff6ff;
+    --info-border: #1d4ed8;
+    --error-bg: #fef2f2;
+    --error-border: #b91c1c;
+    --success-bg: #ecfdf5;
+    --success-border: #047857;
+}
+
+* { box-sizing: border-box; }
+body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    margin: 0;
+    padding: 1rem;
+}
+
+.container {
+    max-width: 880px;
+    margin: 2rem auto;
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.pl-flag {
+    width: 48px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+h1 { font-size: 1.75rem; margin: 0; color: var(--primary); }
+p { color: var(--text-muted); margin-top: 0; }
+
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+    background: #f3f4f6;
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: #f0f9ff;
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
+    border: 2px dashed #6b7280;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+}
+
+input[type="file"] {
+    display: block;
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.5rem 0;
+}
+
+input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+#file-selected-info {
+    display: none;
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1rem;
+    background: var(--info-bg);
+    border-left: 5px solid var(--info-border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.consent-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.consent-group input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    min-width: 1.25rem;
+    margin-top: 0.2rem;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.consent-group label {
+    font-weight: 400;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--text-main);
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.actions button {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 0.85rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.actions button:hover { background-color: var(--primary-hover); }
+.actions button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+.link-btn {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+#result-box {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 8px;
+    display: none;
+}
+#result-box.success {
+    display: block;
+    background: var(--success-bg);
+    border: 2px solid var(--success-border);
+}
+#result-box.error {
+    display: block;
+    background: var(--error-bg);
+    border: 2px solid var(--error-border);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background: #fff;
+}
+th, td {
+    border: 1px solid #d1d5db;
+    padding: 0.6rem;
+    text-align: left;
+    font-size: 0.95rem;
+}
+th { background: #f3f4f6; }
+
+code {
+    background: #f3f4f6;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.excel-preview-wrapper {
+    overflow-x: auto;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    margin-top: 1rem;
+    background: #fff;
+}
+
+.excel-window-bar {
+    background: #107c41;
+    color: #ffffff;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.excel-badge {
+    background: #ffffff;
+    color: #107c41;
+    font-weight: 800;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+}
+
+.excel-mock-table {
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+.excel-mock-table th {
+    background: #e5e7eb;
+    color: #111827;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.85rem;
+}
+
+.excel-mock-table td {
+    font-size: 0.85rem;
+}
+
+.excel-mock-table .row-num {
+    background: #f3f4f6;
+    color: #6b7280;
+    text-align: center;
+    font-weight: 600;
+}
+
+.rules-list {
+    padding-left: 1.25rem;
+    color: var(--text-main);
+}
+
+.rules-list li {
+    margin-bottom: 0.4rem;
+}
+
+.section-divider {
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.75rem 0;
+}
+
+.aed-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.info-card {
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-left: 4px solid var(--primary);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+}
+
+.info-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.05rem;
+    color: var(--primary);
+}
+
+.info-card p {
+    margin: 0;
+    font-size: 0.94rem;
+}
+
+@media (max-width: 600px) {
+    .container { padding: 1.25rem; margin: 0.5rem auto; }
+    .actions button { width: 100%; }
+    .tabs { flex-direction: column; }
+}

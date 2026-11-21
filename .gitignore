@@ -1,2 +1,4 @@
 frontend_latest/
 backend_latest/
+web/__pycache__
+web/master_aed_dane_gov.csv
