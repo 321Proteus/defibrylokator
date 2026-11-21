@@ -9,11 +9,30 @@
 <body>
     <main class="container">
         <header>
-            <h1>Misja AED - Dane na ratunek</h1>
-            <p>Bramka walidacji i standaryzacji wykazów defibrylatorów AED do publikacji w portalu <strong>dane.gov.pl</strong>.</p>
-        </header>
+            <div class="header-top">
+                <h1>Polska Baza AED</h1>
+                <!-- Flaga Polski SVG z wyraźną ramką -->
+                <svg class="pl-flag" viewBox="0 0 640 400" role="img" aria-label="Flaga Rzeczypospolitej Polskiej">
+                    <rect width="640" height="200" fill="#ffffff"/>
+                    <rect y="200" width="640" height="200" fill="#dc143c"/>
+                    <rect width="640" height="400" fill="none" stroke="#9ca3af" stroke-width="10"/>
+                </svg>
+            </div>
+            <p>Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.</p>
+        </section>
 
-        <section aria-labelledby="upload-heading">
+        <!-- Nawigacja zakładek -->
+        <nav class="tabs" role="tablist" aria-label="Sekcje portalu Misja AED">
+            <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-upload" id="tab-upload" data-target="panel-upload">
+                Prześlij wykaz AED
+            </button>
+            <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-guide" id="tab-guide" data-target="panel-guide">
+                Wzór tabeli i informacje o AED
+            </button>
+        </nav>
+
+        <!-- ZAKŁADKA 1: Formularz przesyłania pliku -->
+        <section id="panel-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tab-upload">
             <h2 id="upload-heading" style="font-size: 1.25rem;">Prześlij wykaz urządzeń AED</h2>
             <form id="upload-form">
                 <div class="form-group">
@@ -30,18 +49,110 @@
                 <div class="consent-group">
                     <input type="checkbox" id="data-declaration" name="declaration" required>
                     <label for="data-declaration">
-                        Oświadczam, że przekazywane przeze mnie dane są prawdziwe. Jestem świadomy/-a, że umyślne przekazanie nieprawdziwych informacji, w szczególności dotyczących lokalizacji lub dostępności urządzeń AED, może narazić życie i zdrowie osób potrzebujących pomocy oraz skutkować odpowiedzialnością prawną.                    </label>
+                        Oświadczam, że przekazywane przeze mnie dane są prawdziwe. Jestem świadomy/-a, że umyślne przekazywanie nieprawdziwych informacji, w szczególności dotyczących lokalizacji lub dostępności urządzeń AED, może skutować odpowiedzialnością prawną.
+                    </label>
                 </div>
 
                 <div class="actions">
                     <button type="submit" id="submit-btn">Zweryfikuj i dodaj do bazy</button>
-                    <a href="/dane-gov-export.csv" class="link-btn" download>Pobierz aktualny zbiór CSV (dane.gov.pl)</a>
+                    <a href="/dane-gov-export.csv" class="link-btn" download>Pobierz aktualną bazę danych</a>
                 </div>
             </form>
+
+            <!-- Raport walidacji lub błędy -->
+            <div id="result-box" role="alert" aria-live="assertive"></div>
         </section>
 
-        <!-- Raport walidacji lub błędy -->
-        <div id="result-box" role="alert" aria-live="assertive"></div>
+        <!-- ZAKŁADKA 2: Wzór tabeli Excel oraz informacje o AED -->
+        <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
+            <h2 style="font-size: 1.25rem;">Wymagany format pliku Excel (.xlsx / .xls)</h2>
+            <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>
+
+            <!-- Podgląd przykładowej tabeli stylizowanej na arkusz Excel -->
+            <div class="excel-preview-wrapper" role="region" aria-label="Przykładowy podgląd arkusza Excel" tabindex="0">
+                <div class="excel-window-bar">
+                    <span class="excel-badge">XLSX</span> Podgląd poprawnego arkusza: <strong>wzorzec_aed.xlsx</strong>
+                </div>
+                <table class="excel-mock-table">
+                    <thead>
+                        <tr>
+                            <th class="row-num">#</th>
+                            <th>id_zewnetrzne</th>
+                            <th>nazwa_obiektu *</th>
+                            <th>miasto *</th>
+                            <th>kod_pocztowy *</th>
+                            <th>ulica_i_numer *</th>
+                            <th>opis_lokalizacji *</th>
+                            <th>szerokosc_geo *</th>
+                            <th>dlugosc_geo *</th>
+                            <th>dostepnosc *</th>
+                            <th>godziny_otwarcia</th>
+                            <th>status *</th>
+                            <th>dysponent *</th>
+                            <th>kontakt_telefon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="row-num">2</td>
+                            <td>AED-WAW-101</td>
+                            <td>Urząd Dzielnicy Mokotów</td>
+                            <td>Warszawa</td>
+                            <td>02-517</td>
+                            <td>ul. Rakowiecka 25/27</td>
+                            <td>Parter, hol główny przy punkcie obsługi</td>
+                            <td>52.2045</td>
+                            <td>21.0123</td>
+                            <td>godziny_otwarcia</td>
+                            <td>Pn-Pt 08:00-16:00</td>
+                            <td>sprawny</td>
+                            <td>Urząd m.st. Warszawy</td>
+                            <td>+48 22 443 62 00</td>
+                        </tr>
+                        <tr>
+                            <td class="row-num">3</td>
+                            <td>AED-WAW-102</td>
+                            <td>Dworzec Wschodni PKP</td>
+                            <td>Warszawa</td>
+                            <td>03-801</td>
+                            <td>ul. Kijowska 20</td>
+                            <td>Hala główna, obok punktu informacji</td>
+                            <td>52.2516</td>
+                            <td>21.0518</td>
+                            <td>24/7</td>
+                            <td><em>(puste)</em></td>
+                            <td>sprawny</td>
+                            <td>PKP S.A.</td>
+                            <td>+48 22 474 41 15</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <small style="display:block; margin-top:0.4rem; color:#4b5563;">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem;">Zasady wypełniania kluczowych pól</h3>
+            <ul class="rules-list">
+                <li><code>kod_pocztowy</code> – format z myślnikiem: <strong>00-000</strong> (np. <code>02-517</code>).</li>
+                <li><code>szerokosc_geo</code> i <code>dlugosc_geo</code> – współrzędne WGS84 w granicach Polski (szerokość <strong>49.0 – 54.9</strong>, długość <strong>14.1 – 24.2</strong>).</li>
+                <li><code>dostepnosc</code> – jedna z trzech wartości: <code>24/7</code>, <code>godziny_otwarcia</code> lub <code>ograniczona</code>.</li>
+                <li><code>godziny_otwarcia</code> – pole <strong>obowiązkowe</strong>, jeśli dostępność jest inna niż <code>24/7</code>.</li>
+                <li><code>status</code> – aktualny stan urządzenia: <code>sprawny</code>, <code>w_serwisie</code> lub <code>nieaktywny</code>.</li>
+            </ul>
+
+            <hr class="section-divider">
+
+            <h2 style="font-size: 1.25rem;">Czym jest AED i dlaczego otwarte dane ratują życie?</h2>
+            <div class="aed-info-grid">
+                <div class="info-card">
+                    <h3>Automatyczny Defibrylator Zewnętrzny</h3>
+                    <p>AED (ang. <em>Automated External Defibrillator</em>) to wysoce specjalistyczne, a jednocześnie proste w obsłudze urządzenie medyczne, które analizuje rytm serca poszkodowanego i w razie potrzeby podaje impuls elektryczny przywracający prawidłową pracę serca.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Każda minuta ma znaczenie</h3>
+                    <p>W przypadku nagłego zatrzymania krążenia (NZK) szanse na przeżycie maleją o ok. 7–10% z każdą minutą bez podjęcia resuscytacji i defibrylacji. Szybkie wskazanie najbliższego sprawnego AED przez aplikacje nawigacyjne i dyspozytorów ratownictwa medycznego bezpośrednio ratuje ludzkie życie.</p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script src="request.js"></script>

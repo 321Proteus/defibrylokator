@@ -1,3 +1,29 @@
+// Obsługa zakładek
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabButtons.forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+        });
+        tabPanels.forEach(p => {
+            p.classList.remove('active');
+            p.hidden = true;
+        });
+
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        const targetPanel = document.getElementById(btn.dataset.target);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+            targetPanel.hidden = false;
+        }
+    });
+});
+
+// Obsługa formularza wgrywania pliku
 const form = document.getElementById('upload-form');
 const fileInput = document.getElementById('excel-file');
 const fileSelectedInfo = document.getElementById('file-selected-info');
@@ -46,7 +72,6 @@ form.addEventListener('submit', async (e) => {
 
         const data = await response.json();
 
-        // Obsługa błędów HTTP (np. 400 - zły format, 500 - błąd serwera)
         if (!response.ok) {
             resultBox.className = 'error';
             resultBox.innerHTML = `<strong>Błąd pliku (${uploadedFileName}):</strong> ${data.detail || 'Wystąpił nieoczekiwany błąd serwera.'}`;

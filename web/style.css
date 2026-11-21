@@ -1,4 +1,3 @@
-
 :root {
     --bg-color: #f4f6f9;
     --card-bg: #ffffff;
@@ -26,7 +25,7 @@ body {
 }
 
 .container {
-    max-width: 850px;
+    max-width: 880px;
     margin: 2rem auto;
     background: var(--card-bg);
     padding: 2rem;
@@ -35,13 +34,64 @@ body {
 }
 
 header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.pl-flag {
+    width: 48px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+h1 { font-size: 1.75rem; margin: 0; color: var(--primary); }
+p { color: var(--text-muted); margin-top: 0; }
+
+/* Nawigacja zakładek */
+.tabs {
+    display: flex;
+    gap: 0.5rem;
     border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 1rem;
     margin-bottom: 1.5rem;
 }
 
-h1 { font-size: 1.75rem; margin: 0 0 0.5rem 0; color: var(--primary); }
-p { color: var(--text-muted); margin-top: 0; }
+.tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+    background: #f3f4f6;
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: #f0f9ff;
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
 
 .form-group {
     margin-bottom: 1.25rem;
@@ -65,7 +115,7 @@ input[type="file"] {
     padding: 0.5rem 0;
 }
 
-input:focus, button:focus, a:focus {
+input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
 }
@@ -81,6 +131,7 @@ input:focus, button:focus, a:focus {
     font-size: 0.95rem;
 }
 
+/* Oświadczenie o rzetelności danych */
 .consent-group {
     display: flex;
     align-items: flex-start;
@@ -117,7 +168,7 @@ input:focus, button:focus, a:focus {
     align-items: center;
 }
 
-button {
+.actions button {
     background-color: var(--primary);
     color: #ffffff;
     border: none;
@@ -128,8 +179,8 @@ button {
     cursor: pointer;
 }
 
-button:hover { background-color: var(--primary-hover); }
-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+.actions button:hover { background-color: var(--primary-hover); }
+.actions button:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
 .link-btn {
     color: var(--primary);
@@ -175,7 +226,100 @@ code {
     font-weight: 600;
 }
 
+/* Podgląd przykładowej tabelki Excel */
+.excel-preview-wrapper {
+    overflow-x: auto;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    margin-top: 1rem;
+    background: #fff;
+}
+
+.excel-window-bar {
+    background: #107c41;
+    color: #ffffff;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.excel-badge {
+    background: #ffffff;
+    color: #107c41;
+    font-weight: 800;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+}
+
+.excel-mock-table {
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+.excel-mock-table th {
+    background: #e5e7eb;
+    color: #111827;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.85rem;
+}
+
+.excel-mock-table td {
+    font-size: 0.85rem;
+}
+
+.excel-mock-table .row-num {
+    background: #f3f4f6;
+    color: #6b7280;
+    text-align: center;
+    font-weight: 600;
+}
+
+.rules-list {
+    padding-left: 1.25rem;
+    color: var(--text-main);
+}
+
+.rules-list li {
+    margin-bottom: 0.4rem;
+}
+
+.section-divider {
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.75rem 0;
+}
+
+.aed-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.info-card {
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-left: 4px solid var(--primary);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+}
+
+.info-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.05rem;
+    color: var(--primary);
+}
+
+.info-card p {
+    margin: 0;
+    font-size: 0.94rem;
+}
+
 @media (max-width: 600px) {
     .container { padding: 1.25rem; margin: 0.5rem auto; }
-    button { width: 100%; }
+    .actions button { width: 100%; }
+    .tabs { flex-direction: column; }
 }
