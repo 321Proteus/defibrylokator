@@ -77,14 +77,18 @@ while ($true) {
     catch { Start-Sleep 3 }
 }
 
-if (-not (Test-Path $State)) {
+# Each first-run step is recorded separately in $State, so a failure in a later
+# step doesn't make a retry repeat earlier ones (loaddata is not re-runnable).
+if (-not (Test-Path $State)) { New-Item -ItemType File -Path $State | Out-Null }
+if (-not (Select-String -Path $State -Pattern '^db$' -Quiet)) {
     Write-Host '>> First run: migrations + initial data'
-    Dc run --rm mcod-local-run python manage.py init_mcod_db
-
+    Dc run --rm --no-deps mcod-local-admin python manage.py init_mcod_db
+    Add-Content -Path $State -Value 'db'
+}
+if (-not (Select-String -Path $State -Pattern '^es$' -Quiet)) {
     Write-Host '>> First run: building Elasticsearch indexes'
-    Dc run --rm mcod-local-run python manage.py search_index --rebuild -f
-
-    New-Item -ItemType File -Path $State | Out-Null
+    Dc run --rm --no-deps mcod-local-admin python manage.py search_index --rebuild -f
+    Add-Content -Path $State -Value 'es'
 }
 
 Write-Host '>> Starting backend services'

@@ -58,14 +58,18 @@ echo ">> Waiting for Postgres and Elasticsearch"
 until docker exec mcod-db pg_isready -U mcod >/dev/null 2>&1; do sleep 2; done
 until curl -fs "http://localhost:9200/_cluster/health" >/dev/null 2>&1; do sleep 3; done
 
-if [ ! -f "$STATE" ]; then
+# Each first-run step is recorded separately in $STATE, so a failure in a later
+# step doesn't make a retry repeat earlier ones (loaddata is not re-runnable).
+touch "$STATE"
+if ! grep -qx db "$STATE"; then
   echo ">> First run: migrations + initial data"
-  "${DC[@]}" run --rm mcod-local-run python manage.py init_mcod_db
-  
+  "${DC[@]}" run --rm --no-deps mcod-local-admin python manage.py init_mcod_db
+  echo db >> "$STATE"
+fi
+if ! grep -qx es "$STATE"; then
   echo ">> First run: building Elasticsearch indexes"
-  "${DC[@]}" run --rm mcod-local-run python manage.py search_index --rebuild -f
-  
-  touch "$STATE"
+  "${DC[@]}" run --rm --no-deps mcod-local-admin python manage.py search_index --rebuild -f
+  echo es >> "$STATE"
 fi
 
 echo ">> Starting backend services"
