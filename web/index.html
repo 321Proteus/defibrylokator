@@ -11,7 +11,6 @@
         <header>
             <div class="header-top">
                 <h1>Polska Baza AED</h1>
-                <!-- Flaga Polski SVG z wyraźną ramką -->
                 <svg class="pl-flag" viewBox="0 0 640 400" role="img" aria-label="Flaga Rzeczypospolitej Polskiej">
                     <rect width="640" height="200" fill="#ffffff"/>
                     <rect y="200" width="640" height="200" fill="#dc143c"/>
@@ -21,7 +20,6 @@
             <p>Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.</p>
         </section>
 
-        <!-- Nawigacja zakładek -->
         <nav class="tabs" role="tablist" aria-label="Sekcje portalu Misja AED">
             <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-upload" id="tab-upload" data-target="panel-upload">
                 Prześlij wykaz AED
@@ -31,7 +29,6 @@
             </button>
         </nav>
 
-        <!-- ZAKŁADKA 1: Formularz przesyłania pliku -->
         <section id="panel-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tab-upload">
             <h2 id="upload-heading" style="font-size: 1.25rem;">Prześlij wykaz urządzeń AED</h2>
             <form id="upload-form">
@@ -43,7 +40,6 @@
                     </small>
                 </div>
 
-                <!-- Informacja wyświetlana natychmiast po wskazaniu pliku -->
                 <div id="file-selected-info" role="status" aria-live="polite"></div>
 
                 <div class="consent-group">
@@ -59,16 +55,13 @@
                 </div>
             </form>
 
-            <!-- Raport walidacji lub błędy -->
             <div id="result-box" role="alert" aria-live="assertive"></div>
         </section>
 
-        <!-- ZAKŁADKA 2: Wzór tabeli Excel oraz informacje o AED -->
         <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
             <h2 style="font-size: 1.25rem;">Wymagany format pliku Excel (.xlsx / .xls)</h2>
             <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>
 
-            <!-- Podgląd przykładowej tabeli stylizowanej na arkusz Excel -->
             <div class="excel-preview-wrapper" role="region" aria-label="Przykładowy podgląd arkusza Excel" tabindex="0">
                 <div class="excel-window-bar">
                     <span class="excel-badge">XLSX</span> Podgląd poprawnego arkusza: <strong>wzorzec_aed.xlsx</strong>

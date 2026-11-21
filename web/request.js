@@ -1,4 +1,3 @@
-// Obsługa zakładek
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabPanels = document.querySelectorAll('.tab-panel');
 
@@ -23,7 +22,6 @@ tabButtons.forEach(btn => {
     });
 });
 
-// Obsługa formularza wgrywania pliku
 const form = document.getElementById('upload-form');
 const fileInput = document.getElementById('excel-file');
 const fileSelectedInfo = document.getElementById('file-selected-info');

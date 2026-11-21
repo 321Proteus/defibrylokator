@@ -57,7 +57,6 @@ header {
 h1 { font-size: 1.75rem; margin: 0; color: var(--primary); }
 p { color: var(--text-muted); margin-top: 0; }
 
-/* Nawigacja zakładek */
 .tabs {
     display: flex;
     gap: 0.5rem;
@@ -120,7 +119,6 @@ input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     outline-offset: 2px;
 }
 
-/* Status wybranego pliku */
 #file-selected-info {
     display: none;
     margin-bottom: 1.25rem;
@@ -131,7 +129,6 @@ input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     font-size: 0.95rem;
 }
 
-/* Oświadczenie o rzetelności danych */
 .consent-group {
     display: flex;
     align-items: flex-start;
@@ -226,7 +223,6 @@ code {
     font-weight: 600;
 }
 
-/* Podgląd przykładowej tabelki Excel */
 .excel-preview-wrapper {
     overflow-x: auto;
     border: 1px solid #9ca3af;

@@ -7,7 +7,7 @@ import uuid
 import pandas as pd
 from validator import process_and_validate_excel
 
-app = FastAPI(title="Misja AED - Walidator i Agregator Danych")
+app = FastAPI(title="Polska Baza AED - Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.")
 
 BASE_DIR = Path(__file__).resolve().parent
 MASTER_CSV_PATH = BASE_DIR / "master_aed_dane_gov.csv"
