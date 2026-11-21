@@ -1,0 +1,971 @@
+{
+ "displayFieldName": "ADRES",
+ "fieldAliases": {
+  "OBJECTID": "OBJECTID",
+  "ADRES": "Adres",
+  "PODMIOT": "Podmiot",
+  "OBIEKT": "Obiekt",
+  "LOK_OB": "Lokalizacja"
+ },
+ "geometryType": "esriGeometryPoint",
+ "spatialReference": {
+  "wkid": 4326,
+  "latestWkid": 4326
+ },
+ "fields": [
+  {
+   "name": "OBJECTID",
+   "type": "esriFieldTypeOID",
+   "alias": "OBJECTID"
+  },
+  {
+   "name": "ADRES",
+   "type": "esriFieldTypeString",
+   "alias": "Adres",
+   "length": 254
+  },
+  {
+   "name": "PODMIOT",
+   "type": "esriFieldTypeString",
+   "alias": "Podmiot",
+   "length": 254
+  },
+  {
+   "name": "OBIEKT",
+   "type": "esriFieldTypeString",
+   "alias": "Obiekt",
+   "length": 254
+  },
+  {
+   "name": "LOK_OB",
+   "type": "esriFieldTypeString",
+   "alias": "Lokalizacja",
+   "length": 254
+  }
+ ],
+ "features": [
+  {
+   "attributes": {
+    "OBJECTID": 328,
+    "ADRES": "Popiełuszki 13B",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Lodowisko „Retkinia”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.389561968135542,
+    "y": 51.740704199188571
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 329,
+    "ADRES": "Skrzydlata",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Obiekt Rekreacyjno-Wypoczynkowy „Arturówek”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.474641910354087,
+    "y": 51.823260275818768
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 330,
+    "ADRES": "Janosika 158/160",
+    "PODMIOT": "OSP Łódź-Sikawa",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.524122381349699,
+    "y": 51.794879512140589
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 331,
+    "ADRES": "Byszewska 2",
+    "PODMIOT": "OSP Łódź-Nowosolna",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.591094705477165,
+    "y": 51.794510206863386
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 332,
+    "ADRES": "skrzyżowanie Kurczaki-Rzgowska",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.485861446071461,
+    "y": 51.718401878004933
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 333,
+    "ADRES": "skrzyżowanie Popiełuszki-Wyszyńskiego",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.384346459726807,
+    "y": 51.742289462223759
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 334,
+    "ADRES": "obok Dworca Łódź Dąbrowa",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.509938619417376,
+    "y": 51.736359819379985
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 335,
+    "ADRES": "obok Pabianicka 255",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.413178317667807,
+    "y": 51.700423855142347
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 336,
+    "ADRES": "obok Kusocińskiego 134",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.383436613754615,
+    "y": 51.747928765425648
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 337,
+    "ADRES": "plac Niepodległości",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.463449022931748,
+    "y": 51.739995796008287
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 338,
+    "ADRES": "skrzyżowanie Hetmańska-Billewiczówny",
+    "PODMIOT": "MPK Łódź sp. z o.o.",
+    "OBIEKT": "Krańcówka",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.574886226854691,
+    "y": 51.751715611200844
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 339,
+    "ADRES": "Tymienieckiego 3",
+    "PODMIOT": "Fabryka Sztuki w Łodzi",
+    "OBIEKT": "Fabryka Sztuki",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.463233966291853,
+    "y": 51.749016748645708
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 340,
+    "ADRES": "Odrzańska 29",
+    "PODMIOT": "MCM Górna",
+    "OBIEKT": "Poradnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.423855187431858,
+    "y": 51.714569671662439
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 341,
+    "ADRES": "Rojna 15",
+    "PODMIOT": "Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.389557971532167,
+    "y": 51.793283715222515
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 342,
+    "ADRES": "Spadkowa 4/6",
+    "PODMIOT": "Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.347176565214514,
+    "y": 51.810536682434496
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 343,
+    "ADRES": "Kusocińskiego 140A",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Przychodnia nr 37",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.386127422744696,
+    "y": 51.74556018811645
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 344,
+    "ADRES": "Mokra 10",
+    "PODMIOT": "Straż Miejska w Łodzi",
+    "OBIEKT": "Posterunek",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.425049007748996,
+    "y": 51.7899624222432
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 345,
+    "ADRES": "Paradna 36",
+    "PODMIOT": "3 Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.480948296966591,
+    "y": 51.709159127471104
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 346,
+    "ADRES": "Felińskiego 7",
+    "PODMIOT": "MCM Górna",
+    "OBIEKT": "Poradnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.497707238019654,
+    "y": 51.732102461677606
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 347,
+    "ADRES": "Głowackiego 10/12",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Pływalnia „Promienistych”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.470498672314836,
+    "y": 51.789643217173939
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 348,
+    "ADRES": "Nastrojowa 10",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Nastrojowa”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.440383266799046,
+    "y": 51.823731741922494
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 349,
+    "ADRES": "Olimpijska 7A",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Przychodnia nr 36",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.412187151319774,
+    "y": 51.745829478646691
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 350,
+    "ADRES": "Dojazdowa 5/7",
+    "PODMIOT": "DPS „Pogodna Jesień”",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.475260666719343,
+    "y": 51.810525478799448
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 351,
+    "ADRES": "Gdańska 13",
+    "PODMIOT": "Muzeum Tradycji Niepodległościowych",
+    "OBIEKT": "Muzeum",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.447505300065739,
+    "y": 51.775796459245328
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 352,
+    "ADRES": "Rojna 39",
+    "PODMIOT": "Miejska Biblioteka Publiczna w Łodzi",
+    "OBIEKT": "Filia nr 13",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.376476117735962,
+    "y": 51.794499319364995
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 353,
+    "ADRES": "Lecznicza 6",
+    "PODMIOT": "MCM im. dr. K. Jonschera",
+    "OBIEKT": "Przychodnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.473337130337178,
+    "y": 51.734789610894069
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 354,
+    "ADRES": "Garnizonowa 38",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Przychodnia nr 34",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.384883415580418,
+    "y": 51.772474812208543
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 73,
+    "ADRES": "Zgierska 147",
+    "PODMIOT": "Muzeum Tradycji Niepodległościowych",
+    "OBIEKT": "Oddział Martyrologii Radogoszcz",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.438104949359211,
+    "y": 51.809905962130088
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 74,
+    "ADRES": "Pomorska 406",
+    "PODMIOT": "OSP Łódź-Mileszki",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.570341763157817,
+    "y": 51.770222778906579
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 75,
+    "ADRES": "Pabianicka 2",
+    "PODMIOT": "Urząd Miasta",
+    "OBIEKT": "USC",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.463047573186067,
+    "y": 51.737872098348653
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 76,
+    "ADRES": "Piotrkowska 112",
+    "PODMIOT": "Straż Miejska w Łodzi",
+    "OBIEKT": "Posterunek",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.45842689400315,
+    "y": 51.763674433922311
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 77,
+    "ADRES": "Śląska 168",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Obiekt Rekreacyjno-Wypoczynkowy „Młynek”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.522747480078674,
+    "y": 51.725286212029431
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 78,
+    "ADRES": "Rzgowska 247",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Obiekt Rekreacyjno-Wypoczynkowy „Stawy Jana”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.485479667236934,
+    "y": 51.712750129955595
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 79,
+    "ADRES": "Strykowska 10/18",
+    "PODMIOT": "Zespół Szkół Elektroniczno-Informatycznych Im. Jana Szczepanika w Łodzi",
+    "OBIEKT": "Szkoła Elektroniczna",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.486466362111514,
+    "y": 51.794639420877125
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 80,
+    "ADRES": "Pamięci Ofiar Litzmannstadt Getto 12",
+    "PODMIOT": "Muzeum Tradycji Niepodległościowych",
+    "OBIEKT": "Oddział Stacja Radegast",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.480737067651422,
+    "y": 51.801847849428661
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 321,
+    "ADRES": "Mickiewicza 15",
+    "PODMIOT": "ZDIT Łódź",
+    "OBIEKT": "Przystanek Piotrkowska Centrum",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.456451513857893,
+    "y": 51.75881910587745
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 322,
+    "ADRES": "Piłsudskiego 138",
+    "PODMIOT": "Miejska Arena Kultury i Sportu",
+    "OBIEKT": "Stadion miejski",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.511483955089677,
+    "y": 51.764285228386484
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 323,
+    "ADRES": "Kasprzaka 27",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Przychodnia nr 33",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.427676214189226,
+    "y": 51.776135003750383
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 324,
+    "ADRES": "Kolumny 312",
+    "PODMIOT": "OSP Łódź- Wiskitno",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.548293389480531,
+    "y": 51.712129149517949
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 325,
+    "ADRES": "Bydgoska 17/21",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Bydgoska”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.425606708864031,
+    "y": 51.787179908292529
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 326,
+    "ADRES": "Zarzewska 56/58",
+    "PODMIOT": "MCM im. dr. K. Jonschera",
+    "OBIEKT": "Przychodnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.473417348229265,
+    "y": 51.743236175283975
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 327,
+    "ADRES": "Małachowskiego 7",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Obiekt Sportowy Hala",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.498997775499522,
+    "y": 51.77039424344418
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 355,
+    "ADRES": "Ketlinga 21",
+    "PODMIOT": "Miejska Biblioteka Publiczna w Łodzi",
+    "OBIEKT": "Filia nr 52",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.570470875034555,
+    "y": 51.749087799880847
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 356,
+    "ADRES": "Cieszkowskiego 6",
+    "PODMIOT": "MCM Górna",
+    "OBIEKT": "Poradnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.449072611333584,
+    "y": 51.733455742166704
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 357,
+    "ADRES": "Niciarniana 41",
+    "PODMIOT": "Miejskie Centrum Terapii i Profil. Zdr.",
+    "OBIEKT": "Poradnia",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.508772472299839,
+    "y": 51.759828301821557
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 358,
+    "ADRES": "Pszczelna 84",
+    "PODMIOT": "OSP Łódź-Łagiewniki",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.464809688623752,
+    "y": 51.841209226312905
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 359,
+    "ADRES": "Rudzka 56",
+    "PODMIOT": "Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.434177870042486,
+    "y": 51.705905076696652
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 360,
+    "ADRES": "Przyrodnicza 24/26",
+    "PODMIOT": "DPS „Dom kombatanta”",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.450443403201884,
+    "y": 51.802869954844311
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 361,
+    "ADRES": "Libelta 16",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Karola Libelta”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.479673965074163,
+    "y": 51.790393591246236
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 362,
+    "ADRES": "Plonowa 18",
+    "PODMIOT": "OSP Łódź-Mikołajew",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.358166066199257,
+    "y": 51.803792044993195
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 363,
+    "ADRES": "Unii Lubelskiej 2",
+    "PODMIOT": "Miejska Arena Kultury i Sportu",
+    "OBIEKT": "Hala",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.425183104850923,
+    "y": 51.758572373580698
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 364,
+    "ADRES": "Moniuszki 5",
+    "PODMIOT": "Miejska Biblioteka Publiczna w Łodzi",
+    "OBIEKT": "Mediateka Memo (Filia nr 29)",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.458677585902517,
+    "y": 51.768073373507818
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 365,
+    "ADRES": "Stefanowskiego 28",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Lodowisko Bombonierka",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.453806948976943,
+    "y": 51.750375671148667
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 366,
+    "ADRES": "Skorupki 21",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Hala Sportowa Wielofunkcyjna",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.451171417779449,
+    "y": 51.749365644297868
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 367,
+    "ADRES": "Motylowa 4",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Motylowa”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.429307203927664,
+    "y": 51.819060291386833
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 368,
+    "ADRES": "Złotnicza 10",
+    "PODMIOT": "6 Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.463146935368496,
+    "y": 51.790035117055574
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 369,
+    "ADRES": "Sobolowa 1",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Pływalnia sezonowa",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.51362240206949,
+    "y": 51.760278278330155
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 370,
+    "ADRES": "Murarska 4",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Murarska”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.446173979731956,
+    "y": 51.796525524933713
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 371,
+    "ADRES": "Rydla 19",
+    "PODMIOT": "Straż Miejska w Łodzi",
+    "OBIEKT": "Posterunek",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.497138603998494,
+    "y": 51.735314754023022
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 372,
+    "ADRES": "Wileńska 25",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Przychodnia nr 35",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.426358653749467,
+    "y": 51.752077594613567
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 373,
+    "ADRES": "Podgórna 2/14",
+    "PODMIOT": "5 Dom Pomocy Społecznej",
+    "OBIEKT": "Siedziba DPS",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.487774546530705,
+    "y": 51.739638516054484
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 374,
+    "ADRES": "Przybyszewskiego 253",
+    "PODMIOT": "Miejskie Centrum Terapii i Profil. Zdr.",
+    "OBIEKT": "Oddział Diagnostyczno-Obserwacyjny",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.51525970465994,
+    "y": 51.750009504582735
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 375,
+    "ADRES": "Traugutta 21/23",
+    "PODMIOT": "Łódzki Ośrodek Geodezji",
+    "OBIEKT": "Siedziba ŁOG",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.462781831411618,
+    "y": 51.768442361186118
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 376,
+    "ADRES": "Łanowa 18",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Zakład Rehabilitacji \"Łanowa\"",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.399218097172817,
+    "y": 51.793867611019834
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 377,
+    "ADRES": "Traktorowa 61",
+    "PODMIOT": "MCM Bałuty",
+    "OBIEKT": "Przychodnia Zdrowia „Traktorowa”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.394521701960144,
+    "y": 51.795324763005382
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 378,
+    "ADRES": "Stare Złotno 73",
+    "PODMIOT": "OSP Łódź-Stare Złotno",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.365458735790725,
+    "y": 51.768126460007835
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 379,
+    "ADRES": "Karpacka 61",
+    "PODMIOT": "MOSIR",
+    "OBIEKT": "Obiekt Sportowy „Karpacka”",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.461759235407325,
+    "y": 51.725165738788277
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 380,
+    "ADRES": "Wólczańska 121/123",
+    "PODMIOT": "Straż Miejska w Łodzi",
+    "OBIEKT": "Posterunek",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.453815490302414,
+    "y": 51.75971982025137
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 381,
+    "ADRES": "Wróblewskiego 67",
+    "PODMIOT": "Miejska Biblioteka Publiczna w Łodzi",
+    "OBIEKT": "Filia nr 35",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.424218825685081,
+    "y": 51.749445530869949
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 382,
+    "ADRES": "Rokicińska 335",
+    "PODMIOT": "OSP Łódź-Andrzejów",
+    "OBIEKT": "Siedziba OSP",
+    "LOK_OB": "zewnątrz"
+   },
+   "geometry": {
+    "x": 19.611964172403908,
+    "y": 51.740105766868751
+   }
+  },
+  {
+   "attributes": {
+    "OBJECTID": 383,
+    "ADRES": "Struga 86",
+    "PODMIOT": "MCM Polesie",
+    "OBIEKT": "Specjalist. Przych. dla Dzieci, Młodzieży i Dorosłych",
+    "LOK_OB": "wewnątrz"
+   },
+   "geometry": {
+    "x": 19.433908360313396,
+    "y": 51.761588757400936
+   }
+  }
+ ]
+}
