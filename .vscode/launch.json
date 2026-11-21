@@ -1,0 +1,47 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Defibrylokator: build + run",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./run.sh",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Defibrylokator: run (skip docker build)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./run.sh --no-build",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Defibrylokator: backend only",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./run.sh --backend",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Defibrylokator (Windows): build + run",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\run.ps1",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Defibrylokator (Windows): run (skip docker build)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\run.ps1 -NoBuild",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Defibrylokator (Windows): backend only",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\run.ps1 -BackendOnly",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
