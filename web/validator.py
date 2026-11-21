@@ -1,8 +1,23 @@
+import os
+import sys
+from pathlib import Path
+
 import pandas as pd
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Dict, Any, Optional
 import re
 import math
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # geocode.py leży w katalogu głównym repozytorium
+import geocode  # noqa: E402
+
+# Nominatim: ~1 zapytanie/s, więc plik z tysiącami wierszy bez współrzędnych blokowałby żądanie na godziny.
+MAX_GEOCODED_ROWS = int(os.environ.get("MAX_GEOCODED_ROWS", "100"))
+POSTCODE_RE = re.compile(r"\b\d{2}-\d{3}\b")
+ADDRESS_NOT_FOUND_MSG = (
+    "Nie udało się ustalić współrzędnych dla tego adresu. Sprawdź pisownię (ulica i numer, miasto) "
+    "lub wpisz współrzędne ręcznie."
+)
 
 
 class AEDRecord(BaseModel):
@@ -49,18 +64,37 @@ class AEDRecord(BaseModel):
         return v.strip()
 
 
+# kod_pocztowy, szerokosc_geo i dlugosc_geo można pominąć: uzupełniamy je z adresu (geokodowanie).
 REQUIRED_COLUMNS = {
     "nazwa_obiektu",
     "miasto",
-    "kod_pocztowy",
     "ulica_i_numer",
     "opis_lokalizacji",
-    "szerokosc_geo",
-    "dlugosc_geo",
     "dostepnosc",
     "status",
     "dysponent",
 }
+
+
+def _blank(value: Any) -> bool:
+    return value is None or (isinstance(value, float) and math.isnan(value)) or str(value).strip() == ""
+
+
+def find_coordinates(ulica_i_numer: str, miasto: str) -> Optional[tuple]:
+    """(lat, lon) dla adresu albo None."""
+    return geocode.forward_geocode(f"{ulica_i_numer}, {miasto}")
+
+
+def find_address_details(lat: float, lon: float) -> tuple:
+    """(adres, kod pocztowy NN-NNN) z geokodowania odwrotnego; każdy element może być None."""
+    address = geocode.reverse_geocode(lat, lon)
+    match = POSTCODE_RE.search(address) if address else None
+    return address, (match.group() if match else None)
+
+
+def find_postcode(lat: float, lon: float) -> Optional[str]:
+    """Kod pocztowy NN-NNN z geokodowania odwrotnego albo None."""
+    return find_address_details(lat, lon)[1]
 
 
 def translate_pydantic_error(err: Dict[str, Any]) -> str:
@@ -137,6 +171,13 @@ def process_and_validate_excel(file_path: str) -> Dict[str, Any]:
 
     df.columns = [str(col).strip().lower() for col in df.columns]
 
+    for optional in ("kod_pocztowy", "szerokosc_geo", "dlugosc_geo"):
+        if optional not in df.columns:
+            df[optional] = None
+    df["kod_pocztowy"] = df["kod_pocztowy"].astype(object)
+    df["szerokosc_geo"] = df["szerokosc_geo"].astype(object)
+    df["dlugosc_geo"] = df["dlugosc_geo"].astype(object)
+
     missing_cols = REQUIRED_COLUMNS - set(df.columns)
     if missing_cols:
         return {
@@ -147,6 +188,7 @@ def process_and_validate_excel(file_path: str) -> Dict[str, Any]:
 
     valid_records: List[Dict[str, Any]] = []
     errors: List[Dict[str, Any]] = []
+    geocoded_rows = 0
 
     for idx, row in df.iterrows():
         excel_row_num = idx + 2
@@ -162,6 +204,39 @@ def process_and_validate_excel(file_path: str) -> Dict[str, Any]:
                 "komunikat": "Dla dostępności innej niż '24/7' należy podać godziny otwarcia."
             })
             continue
+
+        lookups_needed = _blank(row_dict.get("szerokosc_geo")) or _blank(row_dict.get("dlugosc_geo")) or _blank(row_dict.get("kod_pocztowy"))
+        if lookups_needed and not (_blank(row_dict.get("ulica_i_numer")) or _blank(row_dict.get("miasto"))):
+            if geocoded_rows >= MAX_GEOCODED_ROWS:
+                errors.append({
+                    "wiersz": excel_row_num,
+                    "pole": "ulica_i_numer",
+                    "komunikat": f"Przekroczono limit automatycznego uzupełniania współrzędnych i kodu pocztowego "
+                                 f"({MAX_GEOCODED_ROWS} wierszy na plik). Uzupełnij te kolumny w pliku.",
+                })
+                continue
+            geocoded_rows += 1
+
+            if _blank(row_dict.get("szerokosc_geo")) or _blank(row_dict.get("dlugosc_geo")):
+                coords = find_coordinates(str(row_dict["ulica_i_numer"]), str(row_dict["miasto"]))
+                if coords is None:
+                    errors.append({"wiersz": excel_row_num, "pole": "ulica_i_numer", "komunikat": ADDRESS_NOT_FOUND_MSG})
+                    continue
+                row_dict["szerokosc_geo"], row_dict["dlugosc_geo"] = round(coords[0], 6), round(coords[1], 6)
+
+            if _blank(row_dict.get("kod_pocztowy")):
+                try:
+                    postcode = find_postcode(float(row_dict["szerokosc_geo"]), float(row_dict["dlugosc_geo"]))
+                except (TypeError, ValueError):
+                    postcode = None  # niepoprawne współrzędne zgłosi walidacja poniżej
+                if postcode is None and not _blank(row_dict.get("szerokosc_geo")):
+                    errors.append({
+                        "wiersz": excel_row_num,
+                        "pole": "kod_pocztowy",
+                        "komunikat": "Nie udało się ustalić kodu pocztowego. Wpisz go ręcznie (format 00-000).",
+                    })
+                    continue
+                row_dict["kod_pocztowy"] = postcode
 
         try:
             record = AEDRecord(**row_dict)

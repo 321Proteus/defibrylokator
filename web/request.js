@@ -258,3 +258,137 @@ if (singleForm) {
         }
     });
 }
+
+// --- Podgląd lokalizacji na mapie (Leaflet) ---
+const checkAddressBtn = document.getElementById('check-address-btn');
+const previewStatus = document.getElementById('preview-status');
+const previewMapEl = document.getElementById('preview-map');
+const geoFields = singleForm ? {
+    adres: singleForm.elements['adres'],
+    miasto: singleForm.elements['miasto'],
+    kod: singleForm.elements['kod_pocztowy'],
+    lat: singleForm.elements['szerokosc_geo'],
+    lon: singleForm.elements['dlugosc_geo']
+} : null;
+
+let previewMap = null;
+let previewMarker = null;
+let previewRun = 0; // numer ostatniego zapytania - odrzucamy spóźnione odpowiedzi
+
+function setPreviewStatus(text, isError = false) {
+    previewStatus.textContent = text;
+    previewStatus.classList.toggle('is-error', isError);
+}
+
+function resetPreview() {
+    previewRun++;
+    if (previewMapEl) previewMapEl.hidden = true;
+    if (previewStatus) setPreviewStatus('');
+}
+
+function placeMarker(lat, lon, recenter) {
+    if (typeof L === 'undefined') {
+        setPreviewStatus('Nie udało się załadować mapy. Współrzędne możesz wpisać ręcznie lub pominąć ten krok.', true);
+        return;
+    }
+    previewMapEl.hidden = false;
+    if (!previewMap) {
+        previewMap = L.map(previewMapEl).setView([lat, lon], 17);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">Współtwórcy OpenStreetMap</a>'
+        }).addTo(previewMap);
+        previewMap.on('click', e => moveMarker(e.latlng.lat, e.latlng.lng));
+    }
+    if (!previewMarker) {
+        previewMarker = L.marker([lat, lon], { draggable: true, title: 'Położenie defibrylatora (przeciągnij, aby poprawić)', alt: 'Położenie defibrylatora' }).addTo(previewMap);
+        previewMarker.on('dragend', () => {
+            const p = previewMarker.getLatLng();
+            moveMarker(p.lat, p.lng);
+        });
+    } else {
+        previewMarker.setLatLng([lat, lon]);
+    }
+    if (recenter) previewMap.setView([lat, lon], 17);
+    previewMap.invalidateSize(); // kontener był ukryty, gdy powstawała mapa
+}
+
+function setCoordinateFields(lat, lon) {
+    geoFields.lat.value = Number(lat).toFixed(6);
+    geoFields.lon.value = Number(lon).toFixed(6);
+}
+
+// Ręczne przesunięcie pinezki: aktualizuje współrzędne i dopytuje serwer o kod pocztowy dla nowego punktu.
+async function moveMarker(lat, lon) {
+    const run = ++previewRun;
+    setCoordinateFields(lat, lon);
+    placeMarker(lat, lon, false);
+    setPreviewStatus('Sprawdzanie adresu dla wskazanego punktu...');
+    try {
+        const res = await fetch(`/reverse-preview?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+        const data = await res.json();
+        if (run !== previewRun) return;
+        if (data.found) {
+            geoFields.kod.value = data.kod_pocztowy || '';
+            setPreviewStatus(`Wskazany punkt: ${data.adres_znaleziony}. Sprawdź, czy kod pocztowy jest poprawny.`);
+        } else {
+            setPreviewStatus(data.message || 'Nie znaleziono adresu dla wskazanego punktu. Kod pocztowy wpisz ręcznie.', true);
+        }
+    } catch (err) {
+        if (run === previewRun) setPreviewStatus('Nie udało się sprawdzić adresu dla tego punktu. Kod pocztowy wpisz ręcznie.', true);
+    }
+}
+
+if (checkAddressBtn && geoFields) {
+    checkAddressBtn.addEventListener('click', async () => {
+        if (checkAddressBtn.getAttribute('aria-disabled') === 'true') return;
+        const adres = geoFields.adres.value.trim();
+        const miasto = geoFields.miasto.value.trim();
+        if (!adres || !miasto) {
+            setPreviewStatus('Najpierw wpisz miasto i adres.', true);
+            (!miasto ? geoFields.miasto : geoFields.adres).focus();
+            return;
+        }
+        const run = ++previewRun;
+        setBusy(checkAddressBtn, true, 'Szukanie adresu...');
+        setPreviewStatus('Szukanie adresu...');
+        try {
+            const res = await fetch(`/geocode-preview?adres=${encodeURIComponent(adres)}&miasto=${encodeURIComponent(miasto)}`);
+            const data = await res.json();
+            if (run !== previewRun) return;
+            if (!data.found) {
+                setPreviewStatus(data.message || 'Nie znaleziono adresu.', true);
+                return;
+            }
+            setCoordinateFields(data.lat, data.lon);
+            geoFields.kod.value = data.kod_pocztowy || '';
+            placeMarker(data.lat, data.lon, true);
+            setPreviewStatus(`Znaleziono: ${data.adres_znaleziony || 'adres'}. Jeśli pinezka wskazuje inne miejsce, przeciągnij ją, kliknij w mapę albo popraw współrzędne.`);
+        } catch (err) {
+            if (run === previewRun) setPreviewStatus(`Błąd połączenia z serwerem: ${err.message}`, true);
+        } finally {
+            setBusy(checkAddressBtn, false, 'Sprawdź adres na mapie');
+        }
+    });
+
+    // Ręczna zmiana współrzędnych przesuwa pinezkę (alternatywa dla przeciągania - WCAG 2.5.7).
+    const syncMarkerFromFields = () => {
+        const lat = parseFloat(geoFields.lat.value.replace(',', '.'));
+        const lon = parseFloat(geoFields.lon.value.replace(',', '.'));
+        if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= 49 && lat <= 54.9 && lon >= 14.1 && lon <= 24.2) {
+            placeMarker(lat, lon, true);
+        }
+    };
+    geoFields.lat.addEventListener('change', syncMarkerFromFields);
+    geoFields.lon.addEventListener('change', syncMarkerFromFields);
+
+    // Zmiana adresu unieważnia podgląd: czyścimy ustalone dane, serwer ustali je od nowa.
+    [geoFields.adres, geoFields.miasto].forEach(el => el.addEventListener('input', () => {
+        if (geoFields.lat.value || geoFields.lon.value || geoFields.kod.value || !previewMapEl.hidden) {
+            geoFields.lat.value = geoFields.lon.value = geoFields.kod.value = '';
+            resetPreview();
+        }
+    }));
+
+    singleForm.addEventListener('reset', resetPreview);
+}

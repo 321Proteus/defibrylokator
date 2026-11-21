@@ -7,7 +7,15 @@ import os
 import re
 import uuid
 import pandas as pd
-from validator import process_and_validate_excel
+from fastapi.concurrency import run_in_threadpool
+from validator import (
+    ADDRESS_NOT_FOUND_MSG,
+    POSTCODE_RE,
+    find_address_details,
+    find_coordinates,
+    find_postcode,
+    process_and_validate_excel,
+)
 
 app = FastAPI(title="Polska Baza AED - Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.")
 
@@ -21,6 +29,8 @@ ALLOWED_AVAILABILITIES = {"24/7", "godziny_otwarcia", "ograniczona"}
 PHONE_CLEAN_RE = re.compile(r"[\s\-\(\)]")
 PL_PHONE_RE = re.compile(r"[1-8]\d{8}")
 CITY_RE = re.compile(r"^[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż\s\-]{2,60}$")
+LAT_RANGE = (49.0, 54.9)
+LON_RANGE = (14.1, 24.2)
 HAS_LETTER_RE = re.compile(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]")
 
 
@@ -98,7 +108,7 @@ async def upload_excel(
     try:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        result = process_and_validate_excel(str(temp_path))
+        result = await run_in_threadpool(process_and_validate_excel, str(temp_path))
     finally:
         if temp_path.exists():
             os.remove(temp_path)
@@ -199,6 +209,28 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
                 "komunikat": "Wpisz poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
             })
 
+    # Współrzędne i kod pocztowy mogą pochodzić z podglądu na mapie (użytkownik mógł je poprawić);
+    # serwer niczego nie przyjmuje bez sprawdzenia.
+    lat_raw = str(payload.get("szerokosc_geo") or "").strip().replace(",", ".")
+    lon_raw = str(payload.get("dlugosc_geo") or "").strip().replace(",", ".")
+    kod_pocztowy = str(payload.get("kod_pocztowy") or "").strip()
+    lat = lon = None
+
+    if lat_raw or lon_raw:
+        try:
+            lat, lon = float(lat_raw), float(lon_raw)
+        except ValueError:
+            errors.append({"pole": "szerokosc_geo", "komunikat": "Wpisz współrzędne jako liczby, np. 52.2297 i 21.0122."})
+        else:
+            if not (LAT_RANGE[0] <= lat <= LAT_RANGE[1] and LON_RANGE[0] <= lon <= LON_RANGE[1]):
+                errors.append({
+                    "pole": "szerokosc_geo",
+                    "komunikat": f"Współrzędne poza granicami Polski (szerokość {LAT_RANGE[0]}–{LAT_RANGE[1]}, długość {LON_RANGE[0]}–{LON_RANGE[1]}).",
+                })
+
+    if kod_pocztowy and not POSTCODE_RE.fullmatch(kod_pocztowy):
+        errors.append({"pole": "kod_pocztowy", "komunikat": "Kod pocztowy musi mieć format 00-000 (np. 02-517)."})
+
     if errors:
         return {
             "status": "validation_errors",
@@ -206,15 +238,29 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
             "errors": errors,
         }
 
+    # Brakujące dane uzupełniamy z adresu (geokodowanie) i ze współrzędnych (geokodowanie odwrotne).
+    if lat is None:
+        coords = await run_in_threadpool(find_coordinates, adres, miasto)
+        if coords is None:
+            return {
+                "status": "validation_errors",
+                "message": "Nie znaleziono tego adresu. Popraw formularz i spróbuj ponownie.",
+                "errors": [{"pole": "adres", "komunikat": ADDRESS_NOT_FOUND_MSG}],
+            }
+        lat, lon = coords
+    lat, lon = round(lat, 6), round(lon, 6)
+    if not kod_pocztowy:
+        kod_pocztowy = await run_in_threadpool(find_postcode, lat, lon) or ""
+
     record = {
         "id_zewnetrzne": f"ZGL-{uuid.uuid4().hex[:6].upper()}",
         "nazwa_obiektu": nazwa_obiektu,
         "miasto": miasto,
-        "kod_pocztowy": "",
+        "kod_pocztowy": kod_pocztowy,
         "ulica_i_numer": adres,
         "opis_lokalizacji": opis_lokalizacji,
-        "szerokosc_geo": None,
-        "dlugosc_geo": None,
+        "szerokosc_geo": lat,
+        "dlugosc_geo": lon,
         "dostepnosc": dostepnosc or "nieokreslona",
         "godziny_otwarcia": "",
         "status": status,
@@ -228,6 +274,27 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
         "status": "accepted",
         "message": "Dziękujemy za dodanie defibrylatora!\nTwój wkład może komuś ocalić życie.",
     }
+
+
+@app.get("/geocode-preview")
+async def geocode_preview(adres: str = "", miasto: str = ""):
+    """Podgląd dla formularza: współrzędne, kod pocztowy i adres znaleziony dla wpisanego adresu."""
+    adres, miasto = adres.strip(), miasto.strip()
+    coords = await run_in_threadpool(find_coordinates, adres, miasto) if adres and miasto else None
+    if coords is None:
+        return {"found": False, "message": ADDRESS_NOT_FOUND_MSG}
+    lat, lon = round(coords[0], 6), round(coords[1], 6)
+    found_address, kod = await run_in_threadpool(find_address_details, lat, lon)
+    return {"found": True, "lat": lat, "lon": lon, "kod_pocztowy": kod or "", "adres_znaleziony": found_address or ""}
+
+
+@app.get("/reverse-preview")
+async def reverse_preview(lat: float, lon: float):
+    """Adres i kod pocztowy dla punktu przesuniętego ręcznie na mapie."""
+    if not (LAT_RANGE[0] <= lat <= LAT_RANGE[1] and LON_RANGE[0] <= lon <= LON_RANGE[1]):
+        return {"found": False, "message": "Punkt leży poza granicami Polski."}
+    found_address, kod = await run_in_threadpool(find_address_details, lat, lon)
+    return {"found": bool(found_address), "kod_pocztowy": kod or "", "adres_znaleziony": found_address or ""}
 
 
 @app.get("/dane-gov-export.csv")
