@@ -27,6 +27,12 @@
                 <!-- Informacja wyświetlana natychmiast po wskazaniu pliku -->
                 <div id="file-selected-info" role="status" aria-live="polite"></div>
 
+                <div class="consent-group">
+                    <input type="checkbox" id="data-declaration" name="declaration" required>
+                    <label for="data-declaration">
+                        Oświadczam, że przekazywane przeze mnie dane są prawdziwe. Jestem świadomy/-a, że umyślne przekazanie nieprawdziwych informacji, w szczególności dotyczących lokalizacji lub dostępności urządzeń AED, może narazić życie i zdrowie osób potrzebujących pomocy oraz skutkować odpowiedzialnością prawną.                    </label>
+                </div>
+
                 <div class="actions">
                     <button type="submit" id="submit-btn">Zweryfikuj i dodaj do bazy</button>
                     <a href="/dane-gov-export.csv" class="link-btn" download>Pobierz aktualny zbiór CSV (dane.gov.pl)</a>
@@ -39,6 +45,5 @@
     </main>
 
     <script src="request.js"></script>
-
 </body>
 </html>

@@ -1,6 +1,7 @@
 const form = document.getElementById('upload-form');
 const fileInput = document.getElementById('excel-file');
 const fileSelectedInfo = document.getElementById('file-selected-info');
+const declarationCheckbox = document.getElementById('data-declaration');
 const submitBtn = document.getElementById('submit-btn');
 const resultBox = document.getElementById('result-box');
 
@@ -21,9 +22,17 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!fileInput.files.length) return;
 
+    if (!declarationCheckbox.checked) {
+        resultBox.className = 'error';
+        resultBox.innerHTML = '<strong>Wymagane oświadczenie:</strong> Zaznacz oświadczenie o rzetelności przekazywanych danych przed wysłaniem pliku.';
+        declarationCheckbox.focus();
+        return;
+    }
+
     const uploadedFileName = fileInput.files[0].name;
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
+    formData.append('declaration', 'true');
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Trwa wczytywanie i walidacja...';
@@ -45,12 +54,12 @@ form.addEventListener('submit', async (e) => {
         }
 
         if (data.status === 'accepted') {
-    resultBox.className = 'success';
-    resultBox.style.display = 'block';
-    resultBox.innerHTML = `<strong>Dziękujemy za wysłanie bazy danych!</strong>`;
-    fileSelectedInfo.style.display = 'none';
-    form.reset();
-} else if (data.status === 'validation_errors') {
+            resultBox.className = 'success';
+            const formattedMessage = data.message.replace(/\n/g, '<br>');
+            resultBox.innerHTML = `<strong>${formattedMessage}</strong>`;
+            fileSelectedInfo.style.display = 'none';
+            form.reset();
+        } else if (data.status === 'validation_errors') {
             resultBox.className = 'error';
             let rowsHtml = data.errors.map(err => `
                 <tr>

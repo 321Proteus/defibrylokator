@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from pathlib import Path
 import shutil
@@ -40,7 +40,16 @@ async def serve_js():
 
 
 @app.post("/upload-aed")
-async def upload_excel(file: UploadFile = File(...)):
+async def upload_excel(
+    file: UploadFile = File(...),
+    declaration: bool = Form(False)
+):
+    if not declaration:
+        raise HTTPException(
+            status_code=400,
+            detail="Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
+        )
+
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
         raise HTTPException(status_code=400, detail="Dozwolone są wyłącznie pliki Excel (.xlsx, .xls).")
 
@@ -99,7 +108,7 @@ async def upload_excel(file: UploadFile = File(...)):
 
     return {
         "status": "accepted",
-        "message": "Dziękujemy za wysłanie bazy danych!",
+        "message": "Dziękujemy za wysłanie bazy danych!\nTwój wkład może komuś ocalić życie.",
     }
 
 
