@@ -39,7 +39,7 @@
                     </small>
                 </div>
 
-                <div id="file-selected-info" role="status" aria-live="polite"></div>
+                <div id="file-selected-info" role="status"></div>
 
                 <div class="consent-group">
                     <input type="checkbox" id="data-declaration" name="declaration" required>
@@ -54,7 +54,7 @@
                 </div>
             </form>
 
-            <div id="result-box" role="alert" aria-live="assertive"></div>
+            <div id="result-box" role="alert"></div>
         </section>
 
         <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
@@ -120,72 +120,72 @@
                 </div>
             </form>
 
-            <div id="single-result-box" role="alert" aria-live="assertive"></div>
+            <div id="single-result-box" role="alert"></div>
         </section>
 
         <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
             <h2>Wymagany format pliku Excel (.xlsx / .xls)</h2>
             <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>
 
-            <div class="excel-preview-wrapper" role="region" aria-label="Przykładowy podgląd arkusza Excel" tabindex="0">
+            <div class="excel-preview-wrapper">
                 <div class="excel-window-bar">
                     <span class="excel-badge">XLSX</span> Podgląd poprawnego arkusza: <strong>wzorzec_aed.xlsx</strong>
                 </div>
-                <div class="excel-table-scroll">
-                    <table class="excel-mock-table">
-                        <thead>
-                            <tr>
-                                <th class="row-num">#</th>
-                                <th>id_zewnetrzne</th>
-                                <th>nazwa_obiektu *</th>
-                                <th>miasto *</th>
-                                <th>kod_pocztowy *</th>
-                                <th>ulica_i_numer *</th>
-                                <th>opis_lokalizacji *</th>
-                                <th>szerokosc_geo *</th>
-                                <th>dlugosc_geo *</th>
-                                <th>dostepnosc *</th>
-                                <th>godziny_otwarcia</th>
-                                <th>status *</th>
-                                <th>dysponent *</th>
-                                <th>kontakt_telefon</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="row-num">2</td>
-                                <td>AED-WAW-101</td>
-                                <td>Urząd Dzielnicy Mokotów</td>
-                                <td>Warszawa</td>
-                                <td>02-517</td>
-                                <td>ul. Rakowiecka 25/27</td>
-                                <td>Parter, hol główny przy punkcie obsługi</td>
-                                <td>52.2045</td>
-                                <td>21.0123</td>
-                                <td>godziny_otwarcia</td>
-                                <td>Pn-Pt 08:00-16:00</td>
-                                <td>sprawny</td>
-                                <td>Urząd m.st. Warszawy</td>
-                                <td>+48 22 443 62 00</td>
-                            </tr>
-                            <tr>
-                                <td class="row-num">3</td>
-                                <td>AED-WAW-102</td>
-                                <td>Dworzec Wschodni PKP</td>
-                                <td>Warszawa</td>
-                                <td>03-801</td>
-                                <td>ul. Kijowska 20</td>
-                                <td>Hala główna, obok punktu informacji</td>
-                                <td>52.2516</td>
-                                <td>21.0518</td>
-                                <td>24/7</td>
-                                <td><em>(puste)</em></td>
-                                <td>sprawny</td>
-                                <td>PKP S.A.</td>
-                                <td>+48 22 474 41 15</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="excel-table-scroll" role="region" aria-label="Przykładowy podgląd arkusza Excel (przewijany poziomo)" tabindex="0">
+                <table class="excel-mock-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="row-num">#</th>
+                            <th scope="col">id_zewnetrzne</th>
+                            <th scope="col">nazwa_obiektu *</th>
+                            <th scope="col">miasto *</th>
+                            <th scope="col">kod_pocztowy *</th>
+                            <th scope="col">ulica_i_numer *</th>
+                            <th scope="col">opis_lokalizacji *</th>
+                            <th scope="col">szerokosc_geo *</th>
+                            <th scope="col">dlugosc_geo *</th>
+                            <th scope="col">dostepnosc *</th>
+                            <th scope="col">godziny_otwarcia</th>
+                            <th scope="col">status *</th>
+                            <th scope="col">dysponent *</th>
+                            <th scope="col">kontakt_telefon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="row-num">2</td>
+                            <td>AED-WAW-101</td>
+                            <td>Urząd Dzielnicy Mokotów</td>
+                            <td>Warszawa</td>
+                            <td>02-517</td>
+                            <td>ul. Rakowiecka 25/27</td>
+                            <td>Parter, hol główny przy punkcie obsługi</td>
+                            <td>52.2045</td>
+                            <td>21.0123</td>
+                            <td>godziny_otwarcia</td>
+                            <td>Pn-Pt 08:00-16:00</td>
+                            <td>sprawny</td>
+                            <td>Urząd m.st. Warszawy</td>
+                            <td>+48 22 443 62 00</td>
+                        </tr>
+                        <tr>
+                            <td class="row-num">3</td>
+                            <td>AED-WAW-102</td>
+                            <td>Dworzec Wschodni PKP</td>
+                            <td>Warszawa</td>
+                            <td>03-801</td>
+                            <td>ul. Kijowska 20</td>
+                            <td>Hala główna, obok punktu informacji</td>
+                            <td>52.2516</td>
+                            <td>21.0518</td>
+                            <td>24/7</td>
+                            <td><em>(puste)</em></td>
+                            <td>sprawny</td>
+                            <td>PKP S.A.</td>
+                            <td>+48 22 474 41 15</td>
+                        </tr>
+                    </tbody>
+                </table>
                 </div>
             </div>
             <small class="helper-text">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
