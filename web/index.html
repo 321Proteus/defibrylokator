@@ -18,11 +18,14 @@
                 </svg>
             </div>
             <p>Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.</p>
-        </section>
+        </header>
 
         <nav class="tabs" role="tablist" aria-label="Sekcje portalu Misja AED">
             <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-upload" id="tab-upload" data-target="panel-upload">
                 Prześlij wykaz AED
+            </button>
+            <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-single" id="tab-single" data-target="panel-single">
+                Dodaj pojedynczy AED
             </button>
             <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-guide" id="tab-guide" data-target="panel-guide">
                 Wzór tabeli i informacje o AED
@@ -56,6 +59,90 @@
             </form>
 
             <div id="result-box" role="alert" aria-live="assertive"></div>
+        </section>
+
+        <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
+            <h2 style="font-size: 1.25rem;">Dodaj pojedyncze urządzenie AED</h2>
+            <p>Pola oznaczone gwiazdką (*) są obowiązkowe.</p>
+            <form id="single-form" novalidate>
+                <div class="field-grid">
+                    <div class="field">
+                        <label for="f-nazwa_obiektu">Nazwa obiektu *</label>
+                        <input type="text" id="f-nazwa_obiektu" name="nazwa_obiektu" required placeholder="np. Urząd Gminy">
+                    </div>
+                    <div class="field">
+                        <label for="f-id_zewnetrzne">ID zewnętrzne</label>
+                        <input type="text" id="f-id_zewnetrzne" name="id_zewnetrzne" placeholder="ID w bazie dysponenta">
+                    </div>
+                    <div class="field">
+                        <label for="f-miasto">Miasto *</label>
+                        <input type="text" id="f-miasto" name="miasto" required>
+                    </div>
+                    <div class="field">
+                        <label for="f-kod_pocztowy">Kod pocztowy *</label>
+                        <input type="text" id="f-kod_pocztowy" name="kod_pocztowy" required placeholder="00-000" pattern="\d{2}-\d{3}" inputmode="numeric">
+                    </div>
+                    <div class="field">
+                        <label for="f-ulica_i_numer">Ulica i numer *</label>
+                        <input type="text" id="f-ulica_i_numer" name="ulica_i_numer" required placeholder="ul. Rakowiecka 25/27">
+                    </div>
+                    <div class="field">
+                        <label for="f-opis_lokalizacji">Opis lokalizacji *</label>
+                        <input type="text" id="f-opis_lokalizacji" name="opis_lokalizacji" required placeholder="np. Parter, przy recepcji">
+                    </div>
+                    <div class="field">
+                        <label for="f-szerokosc_geo">Szerokość geograficzna *</label>
+                        <input type="number" id="f-szerokosc_geo" name="szerokosc_geo" required step="any" min="49.0" max="54.9" placeholder="52.2297">
+                    </div>
+                    <div class="field">
+                        <label for="f-dlugosc_geo">Długość geograficzna *</label>
+                        <input type="number" id="f-dlugosc_geo" name="dlugosc_geo" required step="any" min="14.1" max="24.2" placeholder="21.0122">
+                    </div>
+                    <div class="field">
+                        <label for="f-dostepnosc">Dostępność *</label>
+                        <select id="f-dostepnosc" name="dostepnosc" required>
+                            <option value="">— wybierz —</option>
+                            <option value="24/7">24/7</option>
+                            <option value="godziny_otwarcia">Godziny otwarcia</option>
+                            <option value="ograniczona">Ograniczona</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="f-godziny_otwarcia">Godziny otwarcia <span id="hours-req"></span></label>
+                        <input type="text" id="f-godziny_otwarcia" name="godziny_otwarcia" placeholder="Pn-Pt 08:00-16:00">
+                    </div>
+                    <div class="field">
+                        <label for="f-status">Status *</label>
+                        <select id="f-status" name="status" required>
+                            <option value="">— wybierz —</option>
+                            <option value="sprawny">Sprawny</option>
+                            <option value="w_serwisie">W serwisie</option>
+                            <option value="nieaktywny">Nieaktywny</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="f-dysponent">Dysponent *</label>
+                        <input type="text" id="f-dysponent" name="dysponent" required placeholder="Nazwa instytucji odpowiedzialnej">
+                    </div>
+                    <div class="field">
+                        <label for="f-kontakt_telefon">Telefon kontaktowy</label>
+                        <input type="tel" id="f-kontakt_telefon" name="kontakt_telefon" placeholder="+48 22 443 62 00">
+                    </div>
+                </div>
+
+                <div class="consent-group">
+                    <input type="checkbox" id="single-declaration" name="declaration" required>
+                    <label for="single-declaration">
+                        Oświadczam, że przekazywane przeze mnie dane są prawdziwe. Jestem świadomy/-a, że umyślne przekazywanie nieprawdziwych informacji, w szczególności dotyczących lokalizacji lub dostępności urządzeń AED, może skutować odpowiedzialnością prawną.
+                    </label>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" id="single-submit-btn">Zweryfikuj i dodaj do bazy</button>
+                </div>
+            </form>
+
+            <div id="single-result-box" role="alert" aria-live="assertive"></div>
         </section>
 
         <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>

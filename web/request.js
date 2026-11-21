@@ -132,3 +132,74 @@ form.addEventListener('submit', async (e) => {
         submitBtn.textContent = 'Zweryfikuj i dodaj do bazy';
     }
 });
+
+// ---- Pojedynczy AED (formularz) ----
+const singleForm = document.getElementById('single-form');
+const singleSubmitBtn = document.getElementById('single-submit-btn');
+const singleResultBox = document.getElementById('single-result-box');
+const availabilitySelect = document.getElementById('f-dostepnosc');
+const hoursReq = document.getElementById('hours-req');
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+}
+
+availabilitySelect.addEventListener('change', () => {
+    hoursReq.textContent = (availabilitySelect.value && availabilitySelect.value !== '24/7') ? '*' : '';
+});
+
+singleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    singleResultBox.className = '';
+    singleForm.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+
+    if (!singleForm.checkValidity()) {
+        singleForm.reportValidity();
+        return;
+    }
+
+    const payload = Object.fromEntries(new FormData(singleForm).entries());
+    payload.declaration = singleForm.elements['declaration'].checked;
+
+    singleSubmitBtn.disabled = true;
+    singleSubmitBtn.textContent = 'Trwa walidacja...';
+
+    try {
+        const response = await fetch('/add-aed', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            singleResultBox.className = 'error';
+            singleResultBox.innerHTML = `<strong>Błąd:</strong> ${escapeHtml(data.detail || 'Wystąpił nieoczekiwany błąd serwera.')}`;
+        } else if (data.status === 'accepted') {
+            singleResultBox.className = 'success';
+            singleResultBox.innerHTML = `<strong>${escapeHtml(data.message).replace(/\n/g, '<br>')}</strong>`;
+            singleForm.reset();
+            hoursReq.textContent = '';
+        } else if (data.status === 'validation_errors') {
+            singleResultBox.className = 'error';
+            const items = data.errors.map(err => {
+                const field = singleForm.elements[err.pole];
+                if (field) field.classList.add('invalid');
+                return `<li><code>${escapeHtml(err.pole)}</code> – ${escapeHtml(err.komunikat)}</li>`;
+            }).join('');
+            singleResultBox.innerHTML = `
+                <strong>${escapeHtml(data.message)}</strong>
+                <ul>${items}</ul>
+                <p style="margin: 0.5rem 0 0 0;">Dane <strong>nie zostały</strong> dodane do bazy.</p>`;
+        } else {
+            singleResultBox.className = 'error';
+            singleResultBox.innerHTML = `<strong>Nieznana odpowiedź serwera:</strong> ${escapeHtml(JSON.stringify(data))}`;
+        }
+    } catch (err) {
+        singleResultBox.className = 'error';
+        singleResultBox.innerHTML = `<strong>Błąd połączenia z serwerem:</strong> ${escapeHtml(err.message)}`;
+    } finally {
+        singleSubmitBtn.disabled = false;
+        singleSubmitBtn.textContent = 'Zweryfikuj i dodaj do bazy';
+    }
+});

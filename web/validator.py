@@ -94,6 +94,40 @@ def translate_pydantic_error(err: Dict[str, Any]) -> str:
     return msg
 
 
+def validate_single_record(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Waliduje pojedynczy rekord AED (z formularza). Zwraca {'success', 'errors', 'record'}."""
+    data = {
+        k: (v.strip() if isinstance(v, str) else v)
+        for k, v in raw.items()
+        if k in AEDRecord.model_fields
+    }
+    data = {k: (None if v == "" else v) for k, v in data.items()}
+
+    errors: List[Dict[str, str]] = []
+
+    if str(data.get("dostepnosc")).lower() != "24/7" and not data.get("godziny_otwarcia"):
+        errors.append({
+            "pole": "godziny_otwarcia",
+            "komunikat": "Dla dostępności innej niż '24/7' należy podać godziny otwarcia.",
+        })
+
+    record = None
+    try:
+        record = AEDRecord(**data)
+    except Exception as e:
+        for err in e.errors():
+            errors.append({
+                "pole": ".".join(str(loc) for loc in err["loc"]),
+                "komunikat": translate_pydantic_error(err),
+            })
+
+    return {
+        "success": not errors,
+        "errors": errors,
+        "record": record.model_dump() if record and not errors else None,
+    }
+
+
 def process_and_validate_excel(file_path: str) -> Dict[str, Any]:
     try:
         df = pd.read_excel(file_path, dtype={"kod_pocztowy": str, "kontakt_telefon": str})

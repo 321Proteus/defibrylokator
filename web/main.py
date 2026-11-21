@@ -1,11 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from typing import Any, Dict
+from fastapi import FastAPI, UploadFile, File, Form, Body, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from pathlib import Path
 import shutil
 import os
 import uuid
 import pandas as pd
-from validator import process_and_validate_excel
+from validator import process_and_validate_excel, validate_single_record
 
 app = FastAPI(title="Polska Baza AED - Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.")
 
@@ -13,6 +14,25 @@ BASE_DIR = Path(__file__).resolve().parent
 MASTER_CSV_PATH = BASE_DIR / "master_aed_dane_gov.csv"
 TEMP_DIR = BASE_DIR / "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
+
+
+def merge_into_master(new_df: pd.DataFrame) -> None:
+    if MASTER_CSV_PATH.exists():
+        existing_df = pd.read_csv(
+            MASTER_CSV_PATH,
+            sep=";",
+            encoding="utf-8-sig",
+            dtype={"kod_pocztowy": str, "kontakt_telefon": str}
+        )
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+        combined_df = combined_df.drop_duplicates(
+            subset=["szerokosc_geo", "dlugosc_geo", "nazwa_obiektu"],
+            keep="last"
+        )
+    else:
+        combined_df = new_df
+
+    combined_df.to_csv(MASTER_CSV_PATH, sep=";", index=False, encoding="utf-8-sig")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -87,28 +107,35 @@ async def upload_excel(
             "errors": result["errors"],
         }
 
-    new_df: pd.DataFrame = result["clean_dataframe"]
-
-    if MASTER_CSV_PATH.exists():
-        existing_df = pd.read_csv(
-            MASTER_CSV_PATH,
-            sep=";",
-            encoding="utf-8-sig",
-            dtype={"kod_pocztowy": str, "kontakt_telefon": str}
-        )
-        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-        combined_df = combined_df.drop_duplicates(
-            subset=["szerokosc_geo", "dlugosc_geo", "nazwa_obiektu"],
-            keep="last"
-        )
-    else:
-        combined_df = new_df
-
-    combined_df.to_csv(MASTER_CSV_PATH, sep=";", index=False, encoding="utf-8-sig")
+    merge_into_master(result["clean_dataframe"])
 
     return {
         "status": "accepted",
         "message": "Dziękujemy za wysłanie bazy danych!\nTwój wkład może komuś ocalić życie.",
+    }
+
+
+@app.post("/add-aed")
+async def add_single_aed(payload: Dict[str, Any] = Body(...)):
+    if payload.get("declaration") is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
+        )
+
+    result = validate_single_record(payload)
+    if not result["success"]:
+        return {
+            "status": "validation_errors",
+            "message": f"Znaleziono błędy w {len(result['errors'])} polach. Popraw formularz i spróbuj ponownie.",
+            "errors": result["errors"],
+        }
+
+    merge_into_master(pd.DataFrame([result["record"]]))
+
+    return {
+        "status": "accepted",
+        "message": "Dziękujemy za dodanie defibrylatora!\nTwój wkład może komuś ocalić życie.",
     }
 
 

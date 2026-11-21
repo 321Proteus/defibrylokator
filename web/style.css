@@ -114,7 +114,7 @@ input[type="file"] {
     padding: 0.5rem 0;
 }
 
-input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
+input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
 }
@@ -183,6 +183,50 @@ input:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     color: var(--primary);
     font-weight: 600;
     text-decoration: underline;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.field label {
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.field input, .field select {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    font-size: 1rem;
+    border: 1px solid #6b7280;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text-main);
+}
+
+.field input.invalid, .field select.invalid {
+    border-color: var(--error-border);
+    background: var(--error-bg);
+}
+
+#result-box, #single-result-box {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 8px;
+    display: none;
+}
+#single-result-box.success {
+    display: block;
+    background: var(--success-bg);
+    border: 2px solid var(--success-border);
+}
+#single-result-box.error {
+    display: block;
+    background: var(--error-bg);
+    border: 2px solid var(--error-border);
 }
 
 #result-box {
