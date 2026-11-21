@@ -45,20 +45,12 @@ form.addEventListener('submit', async (e) => {
         }
 
         if (data.status === 'accepted') {
-            resultBox.className = 'success';
-            resultBox.innerHTML = `
-                <strong>Plik „${uploadedFileName}” został poprawnie wczytany i zweryfikowany!</strong>
-                <p style="margin: 0.5rem 0;">${data.message}</p>
-                <ul>
-                    <li>Przetworzone wiersze: <strong>${data.added_records}</strong></li>
-                    <li>Pominięto lub zaktualizowano duplikatów: <strong>${data.duplicates_skipped}</strong></li>
-                    <li>Łączny rozmiar bazy dla dane.gov.pl: <strong>${data.total_database_size}</strong></li>
-                </ul>
-            `;
-            fileSelectedInfo.style.display = 'none';
-            form.reset();
-
-        } else if (data.status === 'validation_errors') {
+    resultBox.className = 'success';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `<strong>Dziękujemy za wysłanie bazy danych!</strong>`;
+    fileSelectedInfo.style.display = 'none';
+    form.reset();
+} else if (data.status === 'validation_errors') {
             resultBox.className = 'error';
             let rowsHtml = data.errors.map(err => `
                 <tr>
