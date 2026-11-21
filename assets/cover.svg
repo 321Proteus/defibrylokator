@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f6f9"/>
+      <stop offset="1" stop-color="#e3eef3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- emblem (copied from icon.svg) -->
+  <g transform="translate(70 64)">
+  <defs>
+    <!-- heart-headed map pin -->
+    <path id="pin" d="M256 345 C 236 290, 121 225, 121 125 C 121 74, 159 40, 203 40
+             C 230 40, 248 56, 256 74 C 264 56, 282 40, 309 40
+             C 353 40, 391 74, 391 125 C 391 225, 276 290, 256 345 Z"/>
+    <mask id="gap">
+      <rect width="512" height="512" fill="#fff"/>
+      <use href="#pin" fill="#000" stroke="#000" stroke-width="40" stroke-linejoin="round"/>
+    </mask>
+
+    <!-- route drawn flat; each panel skews it to follow the folds -->
+    <path id="route" d="M256 125 C 252 225, 160 225, 112 172" fill="none" stroke="#0b4f6c"
+          stroke-width="7" stroke-linecap="butt" stroke-dasharray="14 12"/>
+    <clipPath id="p1"><polygon points="66,240 193,205 193,450 66,485"/></clipPath>
+    <clipPath id="p2"><polygon points="193,205 319,240 319,485 193,450"/></clipPath>
+    <clipPath id="p3"><polygon points="319,240 446,205 446,450 319,485"/></clipPath>
+  </defs>
+
+  <!-- folded map in Polish flag colours, broken around the pin -->
+  <g mask="url(#gap)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- left panel -->
+    <polygon points="66,240 193,205 193,327.5 66,362.5" fill="#ffffff"/>
+    <polygon points="66,362.5 193,327.5 193,450 66,485" fill="#dc143c"/>
+    <!-- middle panel (in shade of the folds) -->
+    <polygon points="193,205 319,240 319,362.5 193,327.5" fill="#dfe3e8"/>
+    <polygon points="193,327.5 319,362.5 319,485 193,450" fill="#b30f30"/>
+    <!-- right panel -->
+    <polygon points="319,240 446,205 446,327.5 319,362.5" fill="#ffffff"/>
+    <polygon points="319,362.5 446,327.5 446,450 319,485" fill="#dc143c"/>
+
+    <!-- route from the pin to the start dot -->
+    <g clip-path="url(#p1)"><use href="#route" transform="matrix(1 -0.27559 0 1 0 258.19)"/></g>
+    <g clip-path="url(#p2)"><use href="#route" transform="matrix(1 0.27778 0 1 0 151.39)"/></g>
+    <g clip-path="url(#p3)"><use href="#route" transform="matrix(1 -0.27559 0 1 0 327.91)"/></g>
+
+    <circle cx="112" cy="399" r="14" fill="#0b4f6c"/>
+
+    <g fill="none" stroke="#0b4f6c">
+      <polygon points="66,240 193,205 319,240 446,205 446,450 319,485 193,450 66,485" stroke-width="22"/>
+      <line x1="193" y1="205" x2="193" y2="450" stroke-width="14"/>
+      <line x1="319" y1="240" x2="319" y2="485" stroke-width="14"/>
+    </g>
+  </g>
+
+  <!-- pin with lightning bolt cut out -->
+  <path fill="#0b4f6c" fill-rule="evenodd" d="M256 345 C 236 290, 121 225, 121 125 C 121 74, 159 40, 203 40
+           C 230 40, 248 56, 256 74 C 264 56, 282 40, 309 40
+           C 353 40, 391 74, 391 125 C 391 225, 276 290, 256 345 Z
+           M274 88 L214 182 L250 182 L234 262 L302 156 L266 156 L290 88 Z"/>
+</g>
+
+  <!-- wordmark -->
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="610" y="318" font-size="84" font-weight="800" fill="#0b4f6c" letter-spacing="-2">Defibrylokator</text>
+    <rect x="614" y="350" width="90" height="8" rx="4" fill="#dc143c"/>
+    <text x="612" y="418" font-size="36" font-weight="500" fill="#374151">Mapa defibrylatorów AED</text>
+  </g>
+</svg>
