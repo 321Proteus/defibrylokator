@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polska Baza AED – Ogólnopolski rejestr defibrylatorów</title>
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <main class="container">
@@ -131,60 +131,62 @@
                 <div class="excel-window-bar">
                     <span class="excel-badge">XLSX</span> Podgląd poprawnego arkusza: <strong>wzorzec_aed.xlsx</strong>
                 </div>
-                <table class="excel-mock-table">
-                    <thead>
-                        <tr>
-                            <th class="row-num">#</th>
-                            <th>id_zewnetrzne</th>
-                            <th>nazwa_obiektu *</th>
-                            <th>miasto *</th>
-                            <th>kod_pocztowy *</th>
-                            <th>ulica_i_numer *</th>
-                            <th>opis_lokalizacji *</th>
-                            <th>szerokosc_geo *</th>
-                            <th>dlugosc_geo *</th>
-                            <th>dostepnosc *</th>
-                            <th>godziny_otwarcia</th>
-                            <th>status *</th>
-                            <th>dysponent *</th>
-                            <th>kontakt_telefon</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="row-num">2</td>
-                            <td>AED-WAW-101</td>
-                            <td>Urząd Dzielnicy Mokotów</td>
-                            <td>Warszawa</td>
-                            <td>02-517</td>
-                            <td>ul. Rakowiecka 25/27</td>
-                            <td>Parter, hol główny przy punkcie obsługi</td>
-                            <td>52.2045</td>
-                            <td>21.0123</td>
-                            <td>godziny_otwarcia</td>
-                            <td>Pn-Pt 08:00-16:00</td>
-                            <td>sprawny</td>
-                            <td>Urząd m.st. Warszawy</td>
-                            <td>+48 22 443 62 00</td>
-                        </tr>
-                        <tr>
-                            <td class="row-num">3</td>
-                            <td>AED-WAW-102</td>
-                            <td>Dworzec Wschodni PKP</td>
-                            <td>Warszawa</td>
-                            <td>03-801</td>
-                            <td>ul. Kijowska 20</td>
-                            <td>Hala główna, obok punktu informacji</td>
-                            <td>52.2516</td>
-                            <td>21.0518</td>
-                            <td>24/7</td>
-                            <td><em>(puste)</em></td>
-                            <td>sprawny</td>
-                            <td>PKP S.A.</td>
-                            <td>+48 22 474 41 15</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="excel-table-scroll">
+                    <table class="excel-mock-table">
+                        <thead>
+                            <tr>
+                                <th class="row-num">#</th>
+                                <th>id_zewnetrzne</th>
+                                <th>nazwa_obiektu *</th>
+                                <th>miasto *</th>
+                                <th>kod_pocztowy *</th>
+                                <th>ulica_i_numer *</th>
+                                <th>opis_lokalizacji *</th>
+                                <th>szerokosc_geo *</th>
+                                <th>dlugosc_geo *</th>
+                                <th>dostepnosc *</th>
+                                <th>godziny_otwarcia</th>
+                                <th>status *</th>
+                                <th>dysponent *</th>
+                                <th>kontakt_telefon</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="row-num">2</td>
+                                <td>AED-WAW-101</td>
+                                <td>Urząd Dzielnicy Mokotów</td>
+                                <td>Warszawa</td>
+                                <td>02-517</td>
+                                <td>ul. Rakowiecka 25/27</td>
+                                <td>Parter, hol główny przy punkcie obsługi</td>
+                                <td>52.2045</td>
+                                <td>21.0123</td>
+                                <td>godziny_otwarcia</td>
+                                <td>Pn-Pt 08:00-16:00</td>
+                                <td>sprawny</td>
+                                <td>Urząd m.st. Warszawy</td>
+                                <td>+48 22 443 62 00</td>
+                            </tr>
+                            <tr>
+                                <td class="row-num">3</td>
+                                <td>AED-WAW-102</td>
+                                <td>Dworzec Wschodni PKP</td>
+                                <td>Warszawa</td>
+                                <td>03-801</td>
+                                <td>ul. Kijowska 20</td>
+                                <td>Hala główna, obok punktu informacji</td>
+                                <td>52.2516</td>
+                                <td>21.0518</td>
+                                <td>24/7</td>
+                                <td><em>(puste)</em></td>
+                                <td>sprawny</td>
+                                <td>PKP S.A.</td>
+                                <td>+48 22 474 41 15</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <small class="helper-text">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
 
@@ -213,6 +215,6 @@
         </section>
     </main>
 
-    <script src="request.js?v=9"></script>
+    <script src="request.js?v=11"></script>
 </body>
 </html>

@@ -435,15 +435,17 @@ code {
 }
 
 .excel-preview-wrapper {
-    overflow-x: auto;
+    width: 100%;
     border: 1px solid var(--border-input);
     border-radius: 10px;
     margin-top: 1rem;
     background: #fff;
     box-shadow: var(--shadow-sm);
+    overflow: hidden;
 }
 
 .excel-window-bar {
+    width: 100%;
     background: #107c41;
     color: #ffffff;
     padding: 0.55rem 0.9rem;
@@ -451,6 +453,11 @@ code {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.excel-table-scroll {
+    width: 100%;
+    overflow-x: auto;
 }
 
 .excel-badge {
@@ -464,6 +471,8 @@ code {
 
 .excel-mock-table {
     margin-top: 0;
+    width: max-content;
+    min-width: 100%;
     white-space: nowrap;
 }
 
