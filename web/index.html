@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polska Baza AED – Ogólnopolski rejestr defibrylatorów</title>
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <main class="container">
@@ -127,10 +127,11 @@
             <h2>Wymagany format pliku Excel (.xlsx / .xls)</h2>
             <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>
 
-            <div class="excel-preview-wrapper" role="region" aria-label="Przykładowy podgląd arkusza Excel" tabindex="0">
+            <div class="excel-preview-wrapper">
                 <div class="excel-window-bar">
                     <span class="excel-badge">XLSX</span> Podgląd poprawnego arkusza: <strong>wzorzec_aed.xlsx</strong>
                 </div>
+                <div class="excel-table-scroll" role="region" aria-label="Przykładowy podgląd arkusza Excel (przewijany poziomo)" tabindex="0">
                 <table class="excel-mock-table">
                     <thead>
                         <tr>
@@ -185,6 +186,7 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
             <small class="helper-text">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
 

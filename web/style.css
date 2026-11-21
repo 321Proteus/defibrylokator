@@ -219,7 +219,7 @@ input:focus, select:focus {
 }
 
 /* Wyraźny wskaźnik fokusu (WCAG 2.4.7 / 1.4.11) - kontur o pełnym kolorze, nie półprzezroczysty cień */
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, .excel-preview-wrapper:focus-visible {
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, .excel-table-scroll:focus-visible {
     outline: 3px solid var(--primary);
     outline-offset: 2px;
 }
