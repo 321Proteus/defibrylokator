@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misja AED - Portal zasilania danych dla dane.gov.pl</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Misja AED - Dane na ratunek</h1>
+            <p>Bramka walidacji i standaryzacji wykazów defibrylatorów AED do publikacji w portalu <strong>dane.gov.pl</strong>.</p>
+        </header>
+
+        <section aria-labelledby="upload-heading">
+            <h2 id="upload-heading" style="font-size: 1.25rem;">Prześlij wykaz urządzeń AED</h2>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="excel-file">Wybierz plik w formacie Excel (.xlsx lub .xls):</label>
+                    <input type="file" id="excel-file" name="file" accept=".xlsx,.xls" required aria-describedby="file-help">
+                    <small id="file-help" style="display:block; margin-top:0.5rem; color:#374151;">
+                        Plik musi zawierać wymagane kolumny (m.in. współrzędne WGS84, dostępność i status sprawności).
+                    </small>
+                </div>
+
+                <!-- Informacja wyświetlana natychmiast po wskazaniu pliku -->
+                <div id="file-selected-info" role="status" aria-live="polite"></div>
+
+                <div class="actions">
+                    <button type="submit" id="submit-btn">Zweryfikuj i dodaj do bazy</button>
+                    <a href="/dane-gov-export.csv" class="link-btn" download>Pobierz aktualny zbiór CSV (dane.gov.pl)</a>
+                </div>
+            </form>
+        </section>
+
+        <!-- Raport walidacji lub błędy -->
+        <div id="result-box" role="alert" aria-live="assertive"></div>
+    </main>
+
+    <script src="request.js"></script>
+
+</body>
+</html>
