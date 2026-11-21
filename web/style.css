@@ -216,6 +216,14 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     border-color: var(--error-border);
     background: var(--error-bg);
 }
+.field-error {
+    display: block;
+    color: var(--error-border);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.35rem;
+    line-height: 1.35;
+}
 
 #result-box, #single-result-box {
     margin-top: 1.5rem;

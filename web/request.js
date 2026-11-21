@@ -147,6 +147,38 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 }
 
+function clearFieldErrors() {
+    singleForm.querySelectorAll('.invalid').forEach(el => {
+        el.classList.remove('invalid');
+        el.removeAttribute('aria-invalid');
+    });
+    singleForm.querySelectorAll('.field-error').forEach(el => el.remove());
+}
+
+function showFieldError(fieldElement, message) {
+    if (!fieldElement) return;
+    fieldElement.classList.add('invalid');
+    fieldElement.setAttribute('aria-invalid', 'true');
+
+    const errorEl = document.createElement('small');
+    errorEl.className = 'field-error';
+    errorEl.textContent = message;
+
+    const wrapper = fieldElement.closest('.field') || fieldElement.parentElement;
+    wrapper.appendChild(errorEl);
+}
+
+// Automatyczne czyszczenie czerwonego błędu podczas poprawiania pola
+singleForm.querySelectorAll('input, select').forEach(input => {
+    input.addEventListener('input', () => {
+        input.classList.remove('invalid');
+        input.removeAttribute('aria-invalid');
+        const wrapper = input.closest('.field') || input.parentElement;
+        const err = wrapper.querySelector('.field-error');
+        if (err) err.remove();
+    });
+});
+
 availabilitySelect.addEventListener('change', () => {
     if (availabilitySelect.value === 'godziny_otwarcia' || availabilitySelect.value === 'ograniczona') {
         hoursWrapper.style.display = 'block';
@@ -159,7 +191,7 @@ availabilitySelect.addEventListener('change', () => {
 singleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     singleResultBox.className = '';
-    singleForm.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+    clearFieldErrors();
 
     if (!singleForm.checkValidity()) {
         singleForm.reportValidity();
@@ -189,16 +221,15 @@ singleForm.addEventListener('submit', async (e) => {
             singleForm.reset();
             hoursWrapper.style.display = 'none';
         } else if (data.status === 'validation_errors') {
-            singleResultBox.className = 'error';
-            const items = data.errors.map(err => {
+            let firstInvalidField = null;
+            data.errors.forEach(err => {
                 const field = singleForm.elements[err.pole];
-                if (field) field.classList.add('invalid');
-                return `<li><code>${escapeHtml(err.pole)}</code> – ${escapeHtml(err.komunikat)}</li>`;
-            }).join('');
-            singleResultBox.innerHTML = `
-                <strong>${escapeHtml(data.message)}</strong>
-                <ul>${items}</ul>
-                <p style="margin: 0.5rem 0 0 0;">Dane <strong>nie zostały</strong> dodane do bazy.</p>`;
+                if (field) {
+                    if (!firstInvalidField) firstInvalidField = field;
+                    showFieldError(field, err.komunikat);
+                }
+            });
+            if (firstInvalidField) firstInvalidField.focus();
         } else {
             singleResultBox.className = 'error';
             singleResultBox.innerHTML = `<strong>Nieznana odpowiedź serwera:</strong> ${escapeHtml(JSON.stringify(data))}`;
