@@ -4,9 +4,10 @@ from fastapi.responses import FileResponse, HTMLResponse
 from pathlib import Path
 import shutil
 import os
+import re
 import uuid
 import pandas as pd
-from validator import process_and_validate_excel, validate_single_record
+from validator import process_and_validate_excel
 
 app = FastAPI(title="Polska Baza AED - Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.")
 
@@ -58,10 +59,15 @@ async def serve_js():
         raise HTTPException(status_code=404, detail="Brak pliku request.js")
     return FileResponse(js_path, media_type="application/javascript")
 
+
 @app.get("/icon.png")
 async def serve_logo():
     logo_path = BASE_DIR / "icon.png"
     if not logo_path.exists():
+        # Zapasowe sprawdzenie w folderze ../assets, jeśli pliku nie ma bezpośrednio obok main.py
+        assets_path = BASE_DIR.parent / "assets" / "icon.png"
+        if assets_path.exists():
+            return FileResponse(assets_path, media_type="image/png")
         raise HTTPException(status_code=404, detail="Brak pliku icon.png")
     return FileResponse(logo_path, media_type="image/png")
 
@@ -130,15 +136,74 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
             detail="Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
         )
 
-    result = validate_single_record(payload)
-    if not result["success"]:
+    errors = []
+
+    nazwa_obiektu = str(payload.get("nazwa_obiektu", "")).strip()
+    miasto = str(payload.get("miasto", "")).strip()
+    adres = str(payload.get("adres", "")).strip()
+    opis_lokalizacji = str(payload.get("opis_lokalizacji", "")).strip()
+    status = str(payload.get("status", "")).strip()
+    dostepnosc = str(payload.get("dostepnosc", "")).strip()
+    godziny_otwarcia = str(payload.get("godziny_otwarcia", "")).strip()
+    kontakt_telefon = str(payload.get("kontakt_telefon", "")).strip()
+
+    if not nazwa_obiektu:
+        errors.append({"pole": "nazwa_obiektu", "komunikat": "Pole Nazwa obiektu jest obowiązkowe."})
+    if not miasto:
+        errors.append({"pole": "miasto", "komunikat": "Pole Miasto jest obowiązkowe."})
+    if not adres:
+        errors.append({"pole": "adres", "komunikat": "Pole Adres jest obowiązkowe."})
+    if not opis_lokalizacji:
+        errors.append({"pole": "opis_lokalizacji", "komunikat": "Pole Opis lokalizacji jest obowiązkowe."})
+    if status not in {"sprawny", "w_serwisie", "nieaktywny"}:
+        errors.append({"pole": "status", "komunikat": "Wybierz poprawny status (sprawny, w_serwisie lub nieaktywny)."})
+
+    if dostepnosc and dostepnosc not in {"24/7", "godziny_otwarcia", "ograniczona"}:
+        errors.append({"pole": "dostepnosc", "komunikat": "Nieprawidłowa wartość dostępności."})
+
+    if godziny_otwarcia:
+        if not re.search(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", godziny_otwarcia):
+            errors.append({
+                "pole": "godziny_otwarcia",
+                "komunikat": "Podaj godziny w formacie przedziału czasowego, np. Pn-Pt 08:00-16:00."
+            })
+
+    if kontakt_telefon:
+        digits = re.sub(r"[\s\-\(\)]", "", kontakt_telefon)
+        if digits.startswith("+48"):
+            digits = digits[3:]
+        elif digits.startswith("0048"):
+            digits = digits[4:]
+        if not re.fullmatch(r"[1-8]\d{8}", digits):
+            errors.append({
+                "pole": "kontakt_telefon",
+                "komunikat": "Podaj poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
+            })
+
+    if errors:
         return {
             "status": "validation_errors",
-            "message": f"Znaleziono błędy w {len(result['errors'])} polach. Popraw formularz i spróbuj ponownie.",
-            "errors": result["errors"],
+            "message": f"Znaleziono błędy w {len(errors)} polach. Popraw formularz i spróbuj ponownie.",
+            "errors": errors,
         }
 
-    merge_into_master(pd.DataFrame([result["record"]]))
+    record = {
+        "id_zewnetrzne": f"ZGL-{uuid.uuid4().hex[:6].upper()}",
+        "nazwa_obiektu": nazwa_obiektu,
+        "miasto": miasto,
+        "kod_pocztowy": "",
+        "ulica_i_numer": adres,
+        "opis_lokalizacji": opis_lokalizacji,
+        "szerokosc_geo": None,
+        "dlugosc_geo": None,
+        "dostepnosc": dostepnosc if dostepnosc else "nieokreslona",
+        "godziny_otwarcia": godziny_otwarcia if dostepnosc != "24/7" else "",
+        "status": status,
+        "dysponent": "Zgłoszenie indywidualne",
+        "kontakt_telefon": kontakt_telefon,
+    }
+
+    merge_into_master(pd.DataFrame([record]))
 
     return {
         "status": "accepted",

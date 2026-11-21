@@ -1,3 +1,4 @@
+// ---- Obsługa zakładek ----
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabPanels = document.querySelectorAll('.tab-panel');
 
@@ -22,6 +23,7 @@ tabButtons.forEach(btn => {
     });
 });
 
+// ---- Wgrywanie wykazu Excel ----
 const form = document.getElementById('upload-form');
 const fileInput = document.getElementById('excel-file');
 const fileSelectedInfo = document.getElementById('file-selected-info');
@@ -138,14 +140,20 @@ const singleForm = document.getElementById('single-form');
 const singleSubmitBtn = document.getElementById('single-submit-btn');
 const singleResultBox = document.getElementById('single-result-box');
 const availabilitySelect = document.getElementById('f-dostepnosc');
-const hoursReq = document.getElementById('hours-req');
+const hoursWrapper = document.getElementById('hours-field-wrapper');
+const hoursInput = document.getElementById('f-godziny_otwarcia');
 
 function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 }
 
 availabilitySelect.addEventListener('change', () => {
-    hoursReq.textContent = (availabilitySelect.value && availabilitySelect.value !== '24/7') ? '*' : '';
+    if (availabilitySelect.value === 'godziny_otwarcia' || availabilitySelect.value === 'ograniczona') {
+        hoursWrapper.style.display = 'block';
+    } else {
+        hoursWrapper.style.display = 'none';
+        hoursInput.value = '';
+    }
 });
 
 singleForm.addEventListener('submit', async (e) => {
@@ -179,7 +187,7 @@ singleForm.addEventListener('submit', async (e) => {
             singleResultBox.className = 'success';
             singleResultBox.innerHTML = `<strong>${escapeHtml(data.message).replace(/\n/g, '<br>')}</strong>`;
             singleForm.reset();
-            hoursReq.textContent = '';
+            hoursWrapper.style.display = 'none';
         } else if (data.status === 'validation_errors') {
             singleResultBox.className = 'error';
             const items = data.errors.map(err => {

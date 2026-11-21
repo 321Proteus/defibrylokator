@@ -57,72 +57,62 @@
             <div id="result-box" role="alert" aria-live="assertive"></div>
         </section>
 
-        <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
+       <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
             <h2 style="font-size: 1.25rem;">Dodaj pojedyncze urządzenie AED</h2>
-            <p>Pola oznaczone gwiazdką (*) są obowiązkowe.</p>
+            <p>Uzupełnij podstawowe dane o lokalizacji urządzenia. Pola oznaczone gwiazdką (*) są obowiązkowe.</p>
             <form id="single-form" novalidate>
                 <div class="field-grid">
                     <div class="field">
                         <label for="f-nazwa_obiektu">Nazwa obiektu *</label>
-                        <input type="text" id="f-nazwa_obiektu" name="nazwa_obiektu" required placeholder="np. Urząd Gminy">
+                        <input type="text" id="f-nazwa_obiektu" name="nazwa_obiektu" required placeholder="np. Urząd Dzielnicy Mokotów">
                     </div>
-                    <div class="field">
-                        <label for="f-id_zewnetrzne">ID zewnętrzne</label>
-                        <input type="text" id="f-id_zewnetrzne" name="id_zewnetrzne" placeholder="ID w bazie dysponenta">
-                    </div>
+
                     <div class="field">
                         <label for="f-miasto">Miasto *</label>
-                        <input type="text" id="f-miasto" name="miasto" required>
+                        <input type="text" id="f-miasto" name="miasto" required placeholder="np. Warszawa">
                     </div>
+
                     <div class="field">
-                        <label for="f-kod_pocztowy">Kod pocztowy *</label>
-                        <input type="text" id="f-kod_pocztowy" name="kod_pocztowy" required placeholder="00-000" pattern="\d{2}-\d{3}" inputmode="numeric">
+                        <label for="f-adres">Adres *</label>
+                        <input type="text" id="f-adres" name="adres" required placeholder="np. ul. Rakowiecka 25/27">
                     </div>
-                    <div class="field">
-                        <label for="f-ulica_i_numer">Ulica i numer *</label>
-                        <input type="text" id="f-ulica_i_numer" name="ulica_i_numer" required placeholder="ul. Rakowiecka 25/27">
-                    </div>
+
                     <div class="field">
                         <label for="f-opis_lokalizacji">Opis lokalizacji *</label>
-                        <input type="text" id="f-opis_lokalizacji" name="opis_lokalizacji" required placeholder="np. Parter, przy recepcji">
+                        <input type="text" id="f-opis_lokalizacji" name="opis_lokalizacji" required placeholder="np. Parter, hol główny przy recepcji">
                     </div>
-                    <div class="field">
-                        <label for="f-szerokosc_geo">Szerokość geograficzna *</label>
-                        <input type="number" id="f-szerokosc_geo" name="szerokosc_geo" required step="any" min="49.0" max="54.9" placeholder="52.2297">
-                    </div>
-                    <div class="field">
-                        <label for="f-dlugosc_geo">Długość geograficzna *</label>
-                        <input type="number" id="f-dlugosc_geo" name="dlugosc_geo" required step="any" min="14.1" max="24.2" placeholder="21.0122">
-                    </div>
-                    <div class="field">
-                        <label for="f-dostepnosc">Dostępność *</label>
-                        <select id="f-dostepnosc" name="dostepnosc" required>
-                            <option value="">— wybierz —</option>
-                            <option value="24/7">24/7</option>
-                            <option value="godziny_otwarcia">Godziny otwarcia</option>
-                            <option value="ograniczona">Ograniczona</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="f-godziny_otwarcia">Godziny otwarcia <span id="hours-req"></span></label>
-                        <input type="text" id="f-godziny_otwarcia" name="godziny_otwarcia" placeholder="Pn-Pt 08:00-16:00">
-                    </div>
+
                     <div class="field">
                         <label for="f-status">Status *</label>
                         <select id="f-status" name="status" required>
-                            <option value="">— wybierz —</option>
-                            <option value="sprawny">Sprawny</option>
+                            <option value="">— wybierz status —</option>
+                            <option value="sprawny">Sprawny (gotowy do użycia)</option>
                             <option value="w_serwisie">W serwisie</option>
                             <option value="nieaktywny">Nieaktywny</option>
                         </select>
                     </div>
+
                     <div class="field">
-                        <label for="f-dysponent">Dysponent *</label>
-                        <input type="text" id="f-dysponent" name="dysponent" required placeholder="Nazwa instytucji odpowiedzialnej">
+                        <label for="f-dostepnosc">Dostępność</label>
+                        <select id="f-dostepnosc" name="dostepnosc">
+                            <option value="">— nieokreślona / brak danych —</option>
+                            <option value="24/7">Całodobowo (24/7)</option>
+                            <option value="godziny_otwarcia">W godzinach otwarcia obiektu</option>
+                            <option value="ograniczona">Ograniczona (np. ochrona / portiernia)</option>
+                        </select>
                     </div>
+
+                    <div class="field" id="hours-field-wrapper" style="display: none;">
+                        <label for="f-godziny_otwarcia">Godziny dostępności</label>
+                        <input type="text" id="f-godziny_otwarcia" name="godziny_otwarcia" placeholder="Format: Pn-Pt 08:00-16:00, Sb 09:00-14:00">
+                        <small style="display:block; margin-top:0.25rem; color:#4b5563; font-size:0.82rem;">
+                            Zalecany format: <code>Pn-Pt GG:MM-GG:MM</code> (np. <code>Pn-Pt 07:00-20:00</code>)
+                        </small>
+                    </div>
+
                     <div class="field">
-                        <label for="f-kontakt_telefon">Telefon kontaktowy</label>
-                        <input type="tel" id="f-kontakt_telefon" name="kontakt_telefon" placeholder="+48 22 443 62 00">
+                        <label for="f-kontakt_telefon">Telefon do właściciela</label>
+                        <input type="tel" id="f-kontakt_telefon" name="kontakt_telefon" placeholder="np. +48 22 443 62 00 lub 500 600 700">
                     </div>
                 </div>
 
@@ -140,7 +130,6 @@
 
             <div id="single-result-box" role="alert" aria-live="assertive"></div>
         </section>
-
         <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
             <h2 style="font-size: 1.25rem;">Wymagany format pliku Excel (.xlsx / .xls)</h2>
             <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>

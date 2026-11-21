@@ -186,24 +186,30 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
 
 .field-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.25rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.15rem;
+    margin-bottom: 1.5rem;
 }
 
 .field label {
     font-size: 0.95rem;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.35rem;
+    color: var(--text-main);
 }
 
 .field input, .field select {
     width: 100%;
-    padding: 0.55rem 0.7rem;
-    font-size: 1rem;
-    border: 1px solid #6b7280;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.98rem;
+    border: 1.5px solid #9ca3af;
     border-radius: 6px;
-    background: #fff;
+    background: #ffffff;
     color: var(--text-main);
+    transition: border-color 0.15s ease;
+}
+
+.field input:hover, .field select:hover {
+    border-color: var(--primary);
 }
 
 .field input.invalid, .field select.invalid {
@@ -217,29 +223,14 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     border-radius: 8px;
     display: none;
 }
-#single-result-box.success {
+
+#result-box.success, #single-result-box.success {
     display: block;
     background: var(--success-bg);
     border: 2px solid var(--success-border);
-}
-#single-result-box.error {
-    display: block;
-    background: var(--error-bg);
-    border: 2px solid var(--error-border);
 }
 
-#result-box {
-    margin-top: 1.5rem;
-    padding: 1.25rem;
-    border-radius: 8px;
-    display: none;
-}
-#result-box.success {
-    display: block;
-    background: var(--success-bg);
-    border: 2px solid var(--success-border);
-}
-#result-box.error {
+#result-box.error, #single-result-box.error {
     display: block;
     background: var(--error-bg);
     border: 2px solid var(--error-border);
@@ -357,8 +348,9 @@ code {
     font-size: 0.94rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 650px) {
     .container { padding: 1.25rem; margin: 0.5rem auto; }
     .actions button { width: 100%; }
     .tabs { flex-direction: column; }
+    .field-grid { grid-template-columns: 1fr; }
 }
