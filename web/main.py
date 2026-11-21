@@ -16,6 +16,13 @@ MASTER_CSV_PATH = BASE_DIR / "master_aed_dane_gov.csv"
 TEMP_DIR = BASE_DIR / "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+ALLOWED_STATUSES = {"sprawny", "w_serwisie", "nieaktywny"}
+ALLOWED_AVAILABILITIES = {"24/7", "godziny_otwarcia", "ograniczona"}
+PHONE_CLEAN_RE = re.compile(r"[\s\-\(\)]")
+PL_PHONE_RE = re.compile(r"[1-8]\d{8}")
+CITY_RE = re.compile(r"^[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż\s\-]{2,60}$")
+HAS_LETTER_RE = re.compile(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]")
+
 
 def merge_into_master(new_df: pd.DataFrame) -> None:
     if MASTER_CSV_PATH.exists():
@@ -63,13 +70,12 @@ async def serve_js():
 @app.get("/icon.png")
 async def serve_logo():
     logo_path = BASE_DIR / "icon.png"
-    if not logo_path.exists():
-        # Zapasowe sprawdzenie w folderze ../assets, jeśli pliku nie ma bezpośrednio obok main.py
-        assets_path = BASE_DIR.parent / "assets" / "icon.png"
-        if assets_path.exists():
-            return FileResponse(assets_path, media_type="image/png")
-        raise HTTPException(status_code=404, detail="Brak pliku icon.png")
-    return FileResponse(logo_path, media_type="image/png")
+    if logo_path.exists():
+        return FileResponse(logo_path, media_type="image/png")
+    assets_path = BASE_DIR.parent / "assets" / "icon.png"
+    if assets_path.exists():
+        return FileResponse(assets_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Brak pliku icon.png")
 
 
 @app.post("/upload-aed")
@@ -92,7 +98,6 @@ async def upload_excel(
     try:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-
         result = process_and_validate_excel(str(temp_path))
     finally:
         if temp_path.exists():
@@ -144,40 +149,54 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
     opis_lokalizacji = str(payload.get("opis_lokalizacji", "")).strip()
     status = str(payload.get("status", "")).strip()
     dostepnosc = str(payload.get("dostepnosc", "")).strip()
-    godziny_otwarcia = str(payload.get("godziny_otwarcia", "")).strip()
     kontakt_telefon = str(payload.get("kontakt_telefon", "")).strip()
 
-    if not nazwa_obiektu:
-        errors.append({"pole": "nazwa_obiektu", "komunikat": "Pole Nazwa obiektu jest obowiązkowe."})
-    if not miasto:
-        errors.append({"pole": "miasto", "komunikat": "Pole Miasto jest obowiązkowe."})
-    if not adres:
-        errors.append({"pole": "adres", "komunikat": "Pole Adres jest obowiązkowe."})
-    if not opis_lokalizacji:
-        errors.append({"pole": "opis_lokalizacji", "komunikat": "Pole Opis lokalizacji jest obowiązkowe."})
-    if status not in {"sprawny", "w_serwisie", "nieaktywny"}:
-        errors.append({"pole": "status", "komunikat": "Wybierz poprawny status (sprawny, w_serwisie lub nieaktywny)."})
+    if not nazwa_obiektu or len(nazwa_obiektu) < 3 or not HAS_LETTER_RE.search(nazwa_obiektu):
+        errors.append({
+            "pole": "nazwa_obiektu",
+            "komunikat": "Wpisz poprawną nazwę obiektu (minimum 3 znaki, musi zawierać litery)."
+        })
 
-    if dostepnosc and dostepnosc not in {"24/7", "godziny_otwarcia", "ograniczona"}:
-        errors.append({"pole": "dostepnosc", "komunikat": "Nieprawidłowa wartość dostępności."})
+    if not miasto or not CITY_RE.fullmatch(miasto):
+        errors.append({
+            "pole": "miasto",
+            "komunikat": "Wpisz poprawną nazwę miasta (tylko litery, spacje i myślniki, bez cyfr)."
+        })
 
-    if godziny_otwarcia:
-        if not re.search(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", godziny_otwarcia):
-            errors.append({
-                "pole": "godziny_otwarcia",
-                "komunikat": "Podaj godziny w formacie przedziału czasowego, np. Pn-Pt 08:00-16:00."
-            })
+    if not adres or len(adres) < 3 or not HAS_LETTER_RE.search(adres):
+        errors.append({
+            "pole": "adres",
+            "komunikat": "Wpisz poprawny adres (minimum 3 znaki, np. ul. Rakowiecka 25)."
+        })
+
+    if not opis_lokalizacji or len(opis_lokalizacji) < 4 or not HAS_LETTER_RE.search(opis_lokalizacji):
+        errors.append({
+            "pole": "opis_lokalizacji",
+            "komunikat": "Wpisz dokładniejszy opis lokalizacji (minimum 4 znaki, np. Parter przy recepcji)."
+        })
+
+    if status not in ALLOWED_STATUSES:
+        errors.append({
+            "pole": "status",
+            "komunikat": "Wybierz poprawny status (sprawny, w_serwisie lub nieaktywny)."
+        })
+
+    if dostepnosc and dostepnosc not in ALLOWED_AVAILABILITIES:
+        errors.append({
+            "pole": "dostepnosc",
+            "komunikat": "Nieprawidłowa wartość dostępności."
+        })
 
     if kontakt_telefon:
-        digits = re.sub(r"[\s\-\(\)]", "", kontakt_telefon)
+        digits = PHONE_CLEAN_RE.sub("", kontakt_telefon)
         if digits.startswith("+48"):
             digits = digits[3:]
         elif digits.startswith("0048"):
             digits = digits[4:]
-        if not re.fullmatch(r"[1-8]\d{8}", digits):
+        if not PL_PHONE_RE.fullmatch(digits):
             errors.append({
                 "pole": "kontakt_telefon",
-                "komunikat": "Podaj poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
+                "komunikat": "Wpisz poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
             })
 
     if errors:
@@ -196,8 +215,8 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
         "opis_lokalizacji": opis_lokalizacji,
         "szerokosc_geo": None,
         "dlugosc_geo": None,
-        "dostepnosc": dostepnosc if dostepnosc else "nieokreslona",
-        "godziny_otwarcia": godziny_otwarcia if dostepnosc != "24/7" else "",
+        "dostepnosc": dostepnosc or "nieokreslona",
+        "godziny_otwarcia": "",
         "status": status,
         "dysponent": "Zgłoszenie indywidualne",
         "kontakt_telefon": kontakt_telefon,

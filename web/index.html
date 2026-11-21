@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Misja AED - Portal zasilania danych dla dane.gov.pl</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Polska Baza AED – Ogólnopolski rejestr defibrylatorów</title>
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <main class="container">
         <header>
             <div class="header-top">
                 <h1>Polska Baza AED</h1>
-                <img src="icon.png" alt="Icon Defibrylokator" class="site-logo">
+                <img src="icon.png" alt="Logo Polska Baza AED" class="site-logo">
             </div>
             <p>Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.</p>
         </header>
 
-        <nav class="tabs" role="tablist" aria-label="Sekcje portalu Misja AED">
+        <nav class="tabs" role="tablist" aria-label="Sekcje portalu Polska Baza AED">
             <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-upload" id="tab-upload" data-target="panel-upload">
                 Prześlij wykaz AED
             </button>
@@ -29,12 +29,12 @@
         </nav>
 
         <section id="panel-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tab-upload">
-            <h2 id="upload-heading" style="font-size: 1.25rem;">Prześlij wykaz urządzeń AED</h2>
+            <h2 id="upload-heading">Prześlij wykaz urządzeń AED</h2>
             <form id="upload-form">
                 <div class="form-group">
                     <label for="excel-file">Wybierz plik w formacie Excel (.xlsx lub .xls):</label>
                     <input type="file" id="excel-file" name="file" accept=".xlsx,.xls" required aria-describedby="file-help">
-                    <small id="file-help" style="display:block; margin-top:0.5rem; color:#374151;">
+                    <small id="file-help" class="helper-text">
                         Plik musi zawierać wymagane kolumny (m.in. współrzędne WGS84, dostępność i status sprawności).
                     </small>
                 </div>
@@ -57,8 +57,8 @@
             <div id="result-box" role="alert" aria-live="assertive"></div>
         </section>
 
-       <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
-            <h2 style="font-size: 1.25rem;">Dodaj pojedyncze urządzenie AED</h2>
+        <section id="panel-single" class="tab-panel" role="tabpanel" aria-labelledby="tab-single" hidden>
+            <h2>Dodaj pojedyncze urządzenie AED</h2>
             <p>Uzupełnij podstawowe dane o lokalizacji urządzenia. Pola oznaczone gwiazdką (*) są obowiązkowe.</p>
             <form id="single-form" novalidate>
                 <div class="field-grid">
@@ -102,14 +102,6 @@
                         </select>
                     </div>
 
-                    <div class="field" id="hours-field-wrapper" style="display: none;">
-                        <label for="f-godziny_otwarcia">Godziny dostępności</label>
-                        <input type="text" id="f-godziny_otwarcia" name="godziny_otwarcia" placeholder="Format: Pn-Pt 08:00-16:00, Sb 09:00-14:00">
-                        <small style="display:block; margin-top:0.25rem; color:#4b5563; font-size:0.82rem;">
-                            Zalecany format: <code>Pn-Pt GG:MM-GG:MM</code> (np. <code>Pn-Pt 07:00-20:00</code>)
-                        </small>
-                    </div>
-
                     <div class="field">
                         <label for="f-kontakt_telefon">Telefon do właściciela</label>
                         <input type="tel" id="f-kontakt_telefon" name="kontakt_telefon" placeholder="np. +48 22 443 62 00 lub 500 600 700">
@@ -130,8 +122,9 @@
 
             <div id="single-result-box" role="alert" aria-live="assertive"></div>
         </section>
+
         <section id="panel-guide" class="tab-panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
-            <h2 style="font-size: 1.25rem;">Wymagany format pliku Excel (.xlsx / .xls)</h2>
+            <h2>Wymagany format pliku Excel (.xlsx / .xls)</h2>
             <p>Pierwszy wiersz arkusza musi zawierać nagłówki kolumn dokładnie o nazwach podanych poniżej. Kolejność kolumn jest dowolna, ale wielkość liter i znaki podkreślenia muszą się zgadzać.</p>
 
             <div class="excel-preview-wrapper" role="region" aria-label="Przykładowy podgląd arkusza Excel" tabindex="0">
@@ -193,9 +186,9 @@
                     </tbody>
                 </table>
             </div>
-            <small style="display:block; margin-top:0.4rem; color:#4b5563;">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
+            <small class="helper-text">* Kolumny oznaczone gwiazdką w podglądzie są obowiązkowe (w samym pliku Excel wpisz nazwy bez gwiazdki).</small>
 
-            <h3 style="font-size: 1.1rem; margin-top: 1.5rem;">Zasady wypełniania kluczowych pól</h3>
+            <h3 class="guide-subheading">Zasady wypełniania kluczowych pól</h3>
             <ul class="rules-list">
                 <li><code>kod_pocztowy</code> – format z myślnikiem: <strong>00-000</strong> (np. <code>02-517</code>).</li>
                 <li><code>szerokosc_geo</code> i <code>dlugosc_geo</code> – współrzędne WGS84 w granicach Polski (szerokość <strong>49.0 – 54.9</strong>, długość <strong>14.1 – 24.2</strong>).</li>
@@ -206,7 +199,7 @@
 
             <hr class="section-divider">
 
-            <h2 style="font-size: 1.25rem;">Czym jest AED i dlaczego otwarte dane ratują życie?</h2>
+            <h2>Czym jest AED i dlaczego otwarte dane ratują życie?</h2>
             <div class="aed-info-grid">
                 <div class="info-card">
                     <h3>Automatyczny Defibrylator Zewnętrzny</h3>
@@ -220,6 +213,6 @@
         </section>
     </main>
 
-    <script src="request.js"></script>
+    <script src="request.js?v=9"></script>
 </body>
 </html>
