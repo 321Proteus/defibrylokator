@@ -58,6 +58,13 @@ async def serve_js():
         raise HTTPException(status_code=404, detail="Brak pliku request.js")
     return FileResponse(js_path, media_type="application/javascript")
 
+@app.get("/icon.png")
+async def serve_logo():
+    logo_path = BASE_DIR / "icon.png"
+    if not logo_path.exists():
+        raise HTTPException(status_code=404, detail="Brak pliku icon.png")
+    return FileResponse(logo_path, media_type="image/png")
+
 
 @app.post("/upload-aed")
 async def upload_excel(
