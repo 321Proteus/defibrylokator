@@ -226,13 +226,25 @@ function renderNearestList(items) {
         const distBadge = dist !== null
             ? `<span class="distance-badge">${escapeHtml(formatDistance(dist))}</span>`
             : '';
+
+        const address = itemAddress(item);
+        const primaryHeading = address
+            || item.nazwa_obiektu
+            || `${Number(item.szerokosc_geo).toFixed(5)}, ${Number(item.dlugosc_geo).toFixed(5)}`;
+        const secondaryName = address && item.nazwa_obiektu && item.nazwa_obiektu !== 'Defibrylator AED'
+            ? `<p class="nearest-card-meta"><strong>${escapeHtml(item.nazwa_obiektu)}</strong></p>`
+            : '';
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.szerokosc_geo},${item.dlugosc_geo}`)}`;
+
         return `
-            <article class="nearest-card" data-key="${escapeHtml(itemKey(item))}">
+            <article class="nearest-card" role="link" tabindex="0"
+                     data-gmaps-url="${escapeHtml(googleMapsUrl)}"
+                     aria-label="Otwórz w Mapach Google: ${escapeHtml(primaryHeading)}">
                 <div class="nearest-card-top">
-                    <span class="nearest-card-title">${escapeHtml(itemTitle(item))}</span>
+                    <span class="nearest-card-title">${escapeHtml(primaryHeading)}</span>
                     ${distBadge}
                 </div>
-                ${itemAddress(item) ? `<p class="nearest-card-meta">${escapeHtml(itemAddress(item))}</p>` : ''}
+                ${secondaryName}
                 ${item.opis_lokalizacji ? `<p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>` : ''}
                 <span class="status-pill ${st.cls}">${escapeHtml(st.label)} • ${escapeHtml(item.dostepnosc || 'brak danych')}</span>
             </article>
@@ -240,16 +252,15 @@ function renderNearestList(items) {
     }).join('');
 
     listContainer.querySelectorAll('.nearest-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const marker = markerByKey.get(card.dataset.key);
-            if (marker && aedMap) {
-                aedMap.setView(marker.getLatLng(), 16);
-                if (typeof aedMarkersLayer.zoomToShowLayer === 'function') {
-                    // znacznik może siedzieć w klastrze: rozbij klaster, potem otwórz dymek
-                    aedMarkersLayer.zoomToShowLayer(marker, () => marker.openPopup());
-                } else {
-                    marker.openPopup();
-                }
+        const openInGoogleMaps = () => {
+            const url = card.dataset.gmapsUrl;
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        };
+        card.addEventListener('click', openInGoogleMaps);
+        card.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openInGoogleMaps();
             }
         });
     });
