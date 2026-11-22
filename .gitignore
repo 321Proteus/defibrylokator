@@ -4,6 +4,10 @@ backend_latest/venv/
 
 node_modules/
 .initialized
+
 web/__pycache__
+scripts/__pycache__
 __pycache__
+
 web/master_aed_dane_gov.csv
+web/.env

@@ -1,12 +1,14 @@
 from typing import Any, Dict
-from fastapi import FastAPI, UploadFile, File, Form, Body, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI, Request, UploadFile, File, Form, Body, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pathlib import Path
 import shutil
 import os
 import re
 import uuid
 import pandas as pd
+import aed_db
+import feed
 from fastapi.concurrency import run_in_threadpool
 from validator import (
     ADDRESS_NOT_FOUND_MSG,
@@ -53,6 +55,14 @@ def merge_into_master(new_df: pd.DataFrame) -> None:
     combined_df.to_csv(MASTER_CSV_PATH, sep=";", index=False, encoding="utf-8-sig")
 
 
+def store_records(new_df: pd.DataFrame) -> None:
+    """Persist validated submissions: Postgres when configured, else the master CSV."""
+    if aed_db.enabled():
+        aed_db.save_records(new_df.to_dict("records"))
+    else:
+        merge_into_master(new_df)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     html_path = BASE_DIR / "index.html"
@@ -88,10 +98,9 @@ async def serve_logo():
     raise HTTPException(status_code=404, detail="Brak pliku icon.png")
 
 
-@app.get("/api/aed-list")
-async def get_aed_list():
+def load_items_from_csv():
     if not MASTER_CSV_PATH.exists():
-        return {"items": []}
+        return []
 
     df = pd.read_csv(
         MASTER_CSV_PATH,
@@ -128,8 +137,19 @@ async def get_aed_list():
             "dysponent": row.get("dysponent", ""),
             "kontakt_telefon": row.get("kontakt_telefon", ""),
         })
+    return items
 
-    return {"items": items}
+
+@app.get("/api/aed-list")
+async def get_aed_list():
+    """Postgres is the source of truth when DATABASE_URL is set; otherwise the master CSV."""
+    if aed_db.enabled():
+        try:
+            return {"items": await run_in_threadpool(aed_db.load_items)}
+        except Exception as exc:
+            print(f"/api/aed-list: błąd bazy danych: {exc}")
+            raise HTTPException(status_code=503, detail="Baza danych jest chwilowo niedostępna.")
+    return {"items": load_items_from_csv()}
 
 
 @app.post("/upload-aed")
@@ -179,7 +199,11 @@ async def upload_excel(
             "errors": result["errors"],
         }
 
-    merge_into_master(result["clean_dataframe"])
+    try:
+        await run_in_threadpool(store_records, result["clean_dataframe"])
+    except Exception as exc:
+        print(f"/upload-aed: błąd zapisu: {exc}")
+        raise HTTPException(status_code=503, detail="Nie udało się zapisać danych w bazie. Spróbuj ponownie później.")
 
     return {
         "status": "accepted",
@@ -312,7 +336,11 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
         "kontakt_telefon": kontakt_telefon,
     }
 
-    merge_into_master(pd.DataFrame([record]))
+    try:
+        await run_in_threadpool(store_records, pd.DataFrame([record]))
+    except Exception as exc:
+        print(f"/add-aed: błąd zapisu: {exc}")
+        raise HTTPException(status_code=503, detail="Nie udało się zapisać danych w bazie. Spróbuj ponownie później.")
 
     return {
         "status": "accepted",
@@ -343,6 +371,16 @@ async def reverse_preview(lat: float, lon: float):
 
 @app.get("/dane-gov-export.csv")
 async def get_machine_readable_dataset():
+    if aed_db.enabled():
+        items = await run_in_threadpool(aed_db.load_items)
+        if not items:
+            raise HTTPException(status_code=404, detail="Zbiór danych jest jeszcze pusty.")
+        csv_text = pd.DataFrame(items).to_csv(sep=";", index=False)
+        return Response(
+            content="\ufeff" + csv_text,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="aed_polska_dane_gov.csv"'},
+        )
     if not MASTER_CSV_PATH.exists():
         raise HTTPException(status_code=404, detail="Zbiór danych jest jeszcze pusty. Prześlij najpierw plik Excel.")
     return FileResponse(
@@ -350,3 +388,23 @@ async def get_machine_readable_dataset():
         media_type="text/csv; charset=utf-8",
         filename="aed_polska_dane_gov.csv",
     )
+
+
+async def _feed_content(request: Request) -> bytes:
+    """Feed XML; the resource URL points back at this app (PUBLIC_BASE_URL overrides the request's host)."""
+    base = os.environ.get("PUBLIC_BASE_URL") or str(request.base_url)
+    if aed_db.enabled():
+        total = len(await run_in_threadpool(aed_db.load_items))
+    else:
+        total = len(load_items_from_csv())
+    return feed.build_feed(f"{base.rstrip('/')}/dane-gov-export.csv", total)
+
+
+@app.api_route("/aed-feed.xml", methods=["GET", "HEAD"])
+async def aed_feed_xml(request: Request):
+    return Response(content=await _feed_content(request), media_type="application/xml; charset=utf-8")
+
+
+@app.api_route("/aed-feed.md5", methods=["GET", "HEAD"])
+async def aed_feed_md5(request: Request):
+    return Response(content=feed.feed_md5(await _feed_content(request)) + "\n", media_type="text/plain")

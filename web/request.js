@@ -26,6 +26,7 @@ function activateTab(btn, moveFocus = false) {
         targetPanel.hidden = false;
     }
     if (moveFocus) btn.focus();
+    if (btn.dataset.target === 'panel-nearest') locateAndLoadNearestAed();
 }
 
 tabButtons.forEach((btn, i) => {
@@ -97,9 +98,9 @@ function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6
 
     if (!aedMap) {
         aedMap = L.map('aed-map').setView([centerLat, centerLon], zoom);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">Współtwórcy OpenStreetMap</a>'
         }).addTo(aedMap);
         aedMarkersLayer = L.layerGroup().addTo(aedMap);
     } else {
@@ -205,7 +206,11 @@ function renderAedOnMapAndList(items, userLat, userLon) {
 
 async function locateAndLoadNearestAed() {
     const geoStatus = document.getElementById('geo-status');
-    ensureMapInitialized();
+    if (!ensureMapInitialized() && geoStatus) {
+        geoStatus.className = 'geo-status error';
+        geoStatus.textContent = 'Nie udało się załadować mapy. Sprawdź połączenie z internetem i odśwież stronę.';
+        return;
+    }
     if (aedMap) {
         setTimeout(() => aedMap.invalidateSize(), 60);
     }
@@ -273,31 +278,6 @@ async function locateAndLoadNearestAed() {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
 }
-
-tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        tabButtons.forEach(b => {
-            b.classList.remove('active');
-            b.setAttribute('aria-selected', 'false');
-        });
-        tabPanels.forEach(p => {
-            p.classList.remove('active');
-            p.hidden = true;
-        });
-
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-        const targetPanel = document.getElementById(btn.dataset.target);
-        if (targetPanel) {
-            targetPanel.classList.add('active');
-            targetPanel.hidden = false;
-        }
-
-        if (btn.dataset.target === 'panel-nearest') {
-            locateAndLoadNearestAed();
-        }
-    });
-});
 
 const refreshLocationBtn = document.getElementById('refresh-location-btn');
 if (refreshLocationBtn) {
