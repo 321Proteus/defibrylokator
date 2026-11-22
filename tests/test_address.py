@@ -111,3 +111,6 @@ def test_page_resolves_addresses_through_the_endpoint():
     from pathlib import Path
     js = (Path(main.__file__).parent / "request.js").read_text(encoding="utf-8")
     assert "/api/aed-address" in js and "resolveAddress" in js
+    assert "Ustalanie adresu" in js  # placeholder while the address is being looked up
+    assert "popupopen" in js  # marker popups trigger the lookup too
+    assert js.count("resolveAddress(") >= 3  # definition + cards + popups

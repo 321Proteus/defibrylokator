@@ -2,6 +2,7 @@
 # Option:
 # --no-build skip the docker image build
 # --backend  start only the backend
+# --reseed   re-publish web/master_aed_dane_gov.csv as the portal's AED resource (otherwise done once)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -10,11 +11,12 @@ FRONTEND="$ROOT/frontend_latest"
 STATE="$ROOT/.initialized"
 DC=(docker compose -f docker-compose.local.yml)
 
-BUILD=1; FRONT=1
+BUILD=1; FRONT=1; RESEED=0
 for a in "$@"; do
   case "$a" in
     --no-build) BUILD=0 ;;
     --backend) FRONT=0 ;;
+    --reseed) RESEED=1 ;;
     *) echo "Unknown option: $a" >&2; exit 1 ;;
   esac
 done
@@ -74,6 +76,43 @@ fi
 
 echo ">> Starting backend services"
 "${DC[@]}" up -d mcod-local-api mcod-local-admin mcod-local-cms mcod-local-celery
+
+# Publish the AED register as a map-ready portal resource (needs celery + Elasticsearch running).
+# Source: web/master_aed_dane_gov.csv (web app running without a database), else the web app's CSV export
+# at $AED_CSV_URL, e.g. AED_CSV_URL=https://<your-app>/dane-gov-export.csv ./run.sh --reseed
+# The resource id is handed to the frontend through assets/aed/config.json.
+SEED_CSV="$ROOT/web/master_aed_dane_gov.csv"
+SEED_TARGET="$BACKEND/data/aed_master.csv"   # ./data is mounted into the containers
+if [ "$RESEED" = 1 ] || ! grep -qx seed "$STATE"; then
+  HAVE_SEED=0
+  mkdir -p "$BACKEND/data"
+  if [ -f "$SEED_CSV" ]; then
+    cp "$SEED_CSV" "$SEED_TARGET" && HAVE_SEED=1
+  elif [ -n "${AED_CSV_URL:-}" ]; then
+    echo ">> Downloading the AED register from $AED_CSV_URL"
+    if curl -fsSL "$AED_CSV_URL" -o "$SEED_TARGET"; then HAVE_SEED=1; else echo "!! Could not download $AED_CSV_URL" >&2; fi
+  else
+    echo "-- No AED data to publish: set AED_CSV_URL to the web app's /dane-gov-export.csv (or create $SEED_CSV), then run with --reseed."
+  fi
+
+  if [ "$HAVE_SEED" = 1 ]; then
+    echo ">> Publishing the AED register as a portal resource"
+    SEED_LOG="$(mktemp)"
+    if "${DC[@]}" run --rm -T --no-deps mcod-local-admin python manage.py seed_aed /usr/src/mcod_backend/data/aed_master.csv > "$SEED_LOG" 2>&1; then
+      grep -E "^(Resource|Processing|Skipped)" "$SEED_LOG" || true
+      RES_ID="$(sed -n 's/^Resource [a-z]*: id=\([0-9]*\).*/\1/p' "$SEED_LOG" | tail -1)"
+      if [ -n "$RES_ID" ]; then
+        mkdir -p "$FRONTEND/src/assets/aed"
+        printf '{"resourceId": "%s"}\n' "$RES_ID" > "$FRONTEND/src/assets/aed/config.json"
+      fi
+      grep -qx seed "$STATE" || echo seed >> "$STATE"
+    else
+      tail -n 20 "$SEED_LOG" >&2
+      echo "!! Publishing the AED register failed; the map will show sample data. Retry with --reseed." >&2
+    fi
+    rm -f "$SEED_LOG"
+  fi
+fi
 
 echo
 echo "Backend:  https://api.mcod.local  (docs: /doc)"

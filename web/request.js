@@ -170,6 +170,7 @@ function popupHtml(item) {
     return `
         <div style="font-family: Inter, sans-serif; font-size: 13px; line-height: 1.45;">
             <strong>${escapeHtml(address || itemTitle(item))}</strong><br>
+            ${!address && pendingAddress.has(item.id_zewnetrzne) ? `${addressPendingHtml}<br>` : ''}
             ${address && item.nazwa_obiektu && item.nazwa_obiektu !== 'Defibrylator AED' ? `${escapeHtml(item.nazwa_obiektu)}<br>` : ''}
             ${item.opis_lokalizacji ? `<em>${escapeHtml(item.opis_lokalizacji)}</em><br>` : ''}
             <strong>Dostępność:</strong> ${escapeHtml(item.dostepnosc || 'brak danych')}<br>
@@ -181,10 +182,13 @@ function popupHtml(item) {
 // Większość punktów z OSM nie ma adresu. Serwer ustala go raz (geokodowanie odwrotne) i zapisuje w bazie,
 // więc kolejne wejścia dostają go od razu. Pytamy tylko o to, co użytkownik widzi: karty z listy i otwierane dymki.
 const addressRequests = new Map();
+const pendingAddress = new Set(); // id-ki, dla których adres jest właśnie ustalany (pokazujemy 'Ustalanie adresu…')
+const addressPendingHtml = '<span class="address-pending">Ustalanie adresu…</span>';
 
 function resolveAddress(item) {
     if (itemAddress(item) || !item.id_zewnetrzne) return Promise.resolve(false);
     if (!addressRequests.has(item.id_zewnetrzne)) {
+        pendingAddress.add(item.id_zewnetrzne);
         addressRequests.set(item.id_zewnetrzne, fetch(`/api/aed-address?id=${encodeURIComponent(item.id_zewnetrzne)}`)
             .then(res => (res.ok ? res.json() : null))
             .then(data => {
@@ -196,6 +200,7 @@ function resolveAddress(item) {
             })
             .catch(() => false)
             .then(found => {
+                pendingAddress.delete(item.id_zewnetrzne);
                 if (!found) setTimeout(() => addressRequests.delete(item.id_zewnetrzne), 60000); // spróbuj ponownie później
                 return found;
             }));
@@ -221,8 +226,10 @@ function addMarkers(items) {
         if (markerByKey.has(key)) return;
         const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon }).bindPopup(() => popupHtml(item));
         marker.on('popupopen', () => {
-            resolveAddress(item).then(found => {
-                if (found && marker.isPopupOpen()) marker.setPopupContent(popupHtml(item));
+            const lookup = resolveAddress(item);
+            if (pendingAddress.has(item.id_zewnetrzne)) marker.setPopupContent(popupHtml(item)); // pokaż 'Ustalanie adresu…'
+            lookup.then(() => {
+                if (marker.isPopupOpen()) marker.setPopupContent(popupHtml(item));
             });
         });
         markers.push(marker);
@@ -271,6 +278,7 @@ function cardHtml(item) {
                 ${distBadge}
             </div>
             ${secondaryName}
+            ${!address && pendingAddress.has(item.id_zewnetrzne) ? `<p class="nearest-card-meta">${addressPendingHtml}</p>` : ''}
             ${item.opis_lokalizacji ? `<p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>` : ''}
             <span class="status-pill ${st.cls}">${escapeHtml(st.label)} • ${escapeHtml(item.dostepnosc || 'brak danych')}</span>
         </article>
@@ -303,6 +311,10 @@ function renderNearestList(items) {
         return;
     }
 
+    pendingAddress.clear();
+    items.forEach(item => {
+        if (!itemAddress(item) && item.id_zewnetrzne) pendingAddress.add(item.id_zewnetrzne);
+    });
     listContainer.innerHTML = items.map(cardHtml).join('');
     listContainer.querySelectorAll('.nearest-card').forEach(bindCard);
 
@@ -310,7 +322,10 @@ function renderNearestList(items) {
     (async () => {
         for (const item of items) {
             if (version !== listVersion) return; // lista została przerysowana
-            if (!(await resolveAddress(item)) || version !== listVersion) continue;
+            if (itemAddress(item)) continue; // adres był od początku
+            await resolveAddress(item);
+            pendingAddress.delete(item.id_zewnetrzne);
+            if (version !== listVersion) return;
             const card = Array.from(listContainer.querySelectorAll('.nearest-card')).find(c => c.dataset.id === (item.id_zewnetrzne || ''));
             if (!card) continue;
             const fresh = document.createElement('div');

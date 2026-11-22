@@ -719,6 +719,12 @@ code {
     box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.28);
 }
 
+.address-pending {
+    color: var(--text-muted, #64748b);
+    font-style: italic;
+    font-size: 0.85em;
+}
+
 .aed-cluster {
     display: flex;
     align-items: center;

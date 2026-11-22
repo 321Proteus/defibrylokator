@@ -1,10 +1,12 @@
 # Options:
 #  -NoBuild     skip the (slow) docker image build
 # -BackendOnly  start only the backend
+# -Reseed       re-publish web\master_aed_dane_gov.csv as the portal's AED resource (otherwise done once)
 # If scripts are blocked: powershell -ExecutionPolicy Bypass -File .\run.ps1
 param(
     [switch]$NoBuild,
-    [switch]$BackendOnly
+    [switch]$BackendOnly,
+    [switch]$Reseed
 )
 $ErrorActionPreference = 'Stop'
 
@@ -93,6 +95,50 @@ if (-not (Select-String -Path $State -Pattern '^es$' -Quiet)) {
 
 Write-Host '>> Starting backend services'
 Dc up -d mcod-local-api mcod-local-admin mcod-local-cms mcod-local-celery
+
+# Publish the AED register as a map-ready portal resource (needs celery + Elasticsearch running).
+# Source: web\master_aed_dane_gov.csv (web app running without a database), else the web app's CSV export
+# at $env:AED_CSV_URL, e.g.  $env:AED_CSV_URL='https://<your-app>/dane-gov-export.csv'; .\run.ps1 -Reseed
+# The resource id is handed to the frontend through assets/aed/config.json.
+$SeedCsv    = Join-Path $Root 'web\master_aed_dane_gov.csv'
+$SeedTarget = Join-Path $Backend 'data\aed_master.csv'   # ./data is mounted into the containers
+if ($Reseed -or -not (Select-String -Path $State -Pattern '^seed$' -Quiet)) {
+    $haveSeed = $false
+    New-Item -ItemType Directory -Force -Path (Join-Path $Backend 'data') | Out-Null
+    if (Test-Path $SeedCsv) {
+        Copy-Item $SeedCsv $SeedTarget -Force
+        $haveSeed = $true
+    } elseif ($env:AED_CSV_URL) {
+        Write-Host ">> Downloading the AED register from $($env:AED_CSV_URL)"
+        try { Invoke-WebRequest -UseBasicParsing -Uri $env:AED_CSV_URL -OutFile $SeedTarget; $haveSeed = $true }
+        catch { Write-Host "!! Could not download $($env:AED_CSV_URL)" -ForegroundColor Yellow }
+    } else {
+        Write-Host "-- No AED data to publish: set AED_CSV_URL to the web app's /dane-gov-export.csv (or create $SeedCsv), then run with -Reseed."
+    }
+
+    if ($haveSeed) {
+        Write-Host '>> Publishing the AED register as a portal resource'
+        # Native stderr must not become a terminating error while we capture the output.
+        $ErrorActionPreference = 'Continue'
+        $seedLog = & docker compose -f docker-compose.local.yml run --rm -T --no-deps mcod-local-admin python manage.py seed_aed /usr/src/mcod_backend/data/aed_master.csv 2>&1 | ForEach-Object { "$_" }
+        $seedOk = ($LASTEXITCODE -eq 0)
+        $ErrorActionPreference = 'Stop'
+
+        if ($seedOk) {
+            $seedLog | Where-Object { $_ -match '^(Resource|Processing|Skipped)' } | ForEach-Object { Write-Host $_ }
+            $resId = $seedLog | ForEach-Object { if ($_ -match '^Resource [a-z]+: id=(\d+)') { $Matches[1] } } | Select-Object -Last 1
+            if ($resId) {
+                $aedAssets = Join-Path $Frontend 'src\assets\aed'
+                New-Item -ItemType Directory -Force -Path $aedAssets | Out-Null
+                [System.IO.File]::WriteAllText((Join-Path $aedAssets 'config.json'), "{`"resourceId`": `"$resId`"}`n", $utf8)
+            }
+            if (-not (Select-String -Path $State -Pattern '^seed$' -Quiet)) { Add-Content -Path $State -Value 'seed' }
+        } else {
+            $seedLog | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+            Write-Host '!! Publishing the AED register failed; the map will show sample data. Retry with -Reseed.' -ForegroundColor Yellow
+        }
+    }
+}
 
 Write-Host ''
 Write-Host 'Backend:  https://api.mcod.local  (docs: /doc)'

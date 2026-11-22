@@ -1,5 +1,6 @@
 import hashlib
 import json
+import io
 import os
 import threading
 import time
@@ -401,6 +402,41 @@ async def get_aed_address(id: str = Query(..., min_length=1, max_length=200)):
         return JSONResponse({"found": False, "busy": True}, status_code=429, headers={"Retry-After": "5"})
     headers = {"Cache-Control": "public, max-age=86400"} if result["found"] else {}
     return JSONResponse(result, headers=headers)
+
+
+EXPORT_COLUMNS = [
+    "id_zewnetrzne", "nazwa_obiektu", "miasto", "kod_pocztowy", "ulica_i_numer", "opis_lokalizacji",
+    "szerokosc_geo", "dlugosc_geo", "dostepnosc", "godziny_otwarcia", "status", "dysponent", "kontakt_telefon",
+]
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def build_xlsx(items: list) -> bytes:
+    """The register as one sheet in the standard column order (the same layout the Excel upload accepts)."""
+    df = pd.DataFrame(items).reindex(columns=EXPORT_COLUMNS)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="AED")
+        sheet = writer.sheets["AED"]
+        sheet.freeze_panes = "A2"
+        for index, column in enumerate(df.columns, start=1):
+            longest = max([len(str(column))] + [len(str(v)) for v in df[column] if v is not None and v == v])
+            sheet.column_dimensions[sheet.cell(row=1, column=index).column_letter].width = min(longest + 2, 60)
+    return buffer.getvalue()
+
+
+@app.get("/dane-gov-export.xlsx")
+async def get_dataset_xlsx():
+    """Download for people ("Pobierz aktualną bazę danych"); the CSV below stays the machine-readable feed target."""
+    items = await _all_items()
+    if not items:
+        raise HTTPException(status_code=404, detail="Zbiór danych jest jeszcze pusty.")
+    content = await run_in_threadpool(build_xlsx, items)
+    return Response(
+        content=content,
+        media_type=XLSX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="aed_polska_dane_gov.xlsx"'},
+    )
 
 
 @app.get("/dane-gov-export.csv")
