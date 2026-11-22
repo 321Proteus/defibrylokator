@@ -68,6 +68,19 @@ let userMarker = null;
 let aedMarkersLayer = null;
 let markerByKey = new Map();
 
+// Baza ma dziesiątki tysięcy AED, więc mapa nie ładuje wszystkiego: serwer zwraca tylko NEARBY_LIMIT najbliższych
+// punktów (od lokalizacji użytkownika albo środka mapy), a po przesunięciu mapy poza pobrany obszar dociągamy kolejne.
+const NEARBY_LIMIT = 300;
+const MAX_MARKERS_ON_MAP = 1500;
+const DEFAULT_CENTER = [52.0693, 19.4803];
+let userPos = null;        // {lat, lon} albo null
+let listItems = [];        // pozycje z listy "najbliższe": ich znaczniki muszą przetrwać odświeżanie mapy
+let loadedView = null;     // {lat, lon, radiusKm}: obszar w pełni pokryty ostatnim pobraniem (radiusKm null = pobrano wszystko)
+let ignoreMovesUntil = 0;  // ruchy mapy wywołane przez kod (fitBounds/setView) nie powinny uruchamiać pobierania
+let moveTimer = null;
+let fetchSeq = 0;
+let aedIcon = null;
+
 function haversineKm(lat1, lon1, lat2, lon2) {
     const toRad = d => (d * Math.PI) / 180;
     const R = 6371;
@@ -92,7 +105,7 @@ function getStatusInfo(status) {
     return { label: status || 'Brak danych', cls: 'off' };
 }
 
-function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6) {
+function ensureMapInitialized(centerLat = DEFAULT_CENTER[0], centerLon = DEFAULT_CENTER[1], zoom = 6) {
     const mapContainer = document.getElementById('aed-map');
     if (!mapContainer || typeof L === 'undefined') return null;
 
@@ -102,7 +115,7 @@ function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">Współtwórcy OpenStreetMap</a>'
         }).addTo(aedMap);
-        // Tysiące punktów: grupujemy znaczniki w klastry (fallback na zwykłą warstwę, gdy wtyczka się nie załaduje).
+        // Setki punktów w jednym miejscu: grupujemy znaczniki w klastry (fallback na zwykłą warstwę, gdy wtyczka się nie załaduje).
         aedMarkersLayer = (typeof L.markerClusterGroup === 'function'
             ? L.markerClusterGroup({
                 chunkedLoading: true,
@@ -119,88 +132,108 @@ function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6
                 }
             })
             : L.layerGroup()).addTo(aedMap);
+        aedMap.on('moveend', onMapMoved);
     }
     aedMap.invalidateSize();
     return aedMap;
 }
 
-function renderAedOnMapAndList(items, userLat, userLon) {
-    const listContainer = document.getElementById('nearest-list');
-    if (!listContainer || !aedMap || !aedMarkersLayer) return;
+// OSM często nie ma nazwy ani adresu: pokazujemy czytelny zamiennik zamiast pustego tytułu i samego przecinka.
+const itemTitle = item => item.nazwa_obiektu || 'Defibrylator AED';
+const itemAddress = item => [item.ulica_i_numer, item.miasto].filter(Boolean).join(', ');
 
-    aedMap.invalidateSize();
-    aedMarkersLayer.clearLayers();
+const itemKey = item => `${item.id_zewnetrzne || ''}|${item.szerokosc_geo}|${item.dlugosc_geo}`;
+
+async function fetchNearby(lat, lon) {
+    const res = await fetch(`/api/aed-nearby?lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&limit=${NEARBY_LIMIT}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { items: data.items || [], radiusKm: data.radius_km === undefined ? null : data.radius_km };
+}
+
+function distanceFromUser(item) {
+    return userPos ? haversineKm(userPos.lat, userPos.lon, item.szerokosc_geo, item.dlugosc_geo) : null;
+}
+
+function resetMarkers() {
+    if (aedMarkersLayer) aedMarkersLayer.clearLayers();
     markerByKey.clear();
+}
 
-    const enriched = items.map((item, idx) => {
-        const dist = (userLat !== null && userLon !== null)
-            ? haversineKm(userLat, userLon, item.szerokosc_geo, item.dlugosc_geo)
-            : null;
-        return { ...item, dist, _key: `${idx}-${item.szerokosc_geo}-${item.dlugosc_geo}` };
-    });
-
-    if (userLat !== null && userLon !== null) {
-        enriched.sort((a, b) => a.dist - b.dist);
+function addMarkers(items) {
+    if (!aedMarkersLayer) return;
+    if (!aedIcon) {
+        aedIcon = L.divIcon({
+            className: '',
+            html: '<div class="aed-pin-dot">+</div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
     }
 
-    const aedIcon = L.divIcon({
-        className: '',
-        html: '<div class="aed-pin-dot">+</div>',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12]
-    });
-
     const markers = [];
-    enriched.forEach(item => {
+    items.forEach(item => {
+        const key = itemKey(item);
+        if (markerByKey.has(key)) return;
         const st = getStatusInfo(item.status);
-        const distLine = item.dist !== null
-            ? `<br><strong>Odległość:</strong> ${escapeHtml(formatDistance(item.dist))}`
+        const dist = distanceFromUser(item);
+        const distLine = dist !== null
+            ? `<br><strong>Odległość:</strong> ${escapeHtml(formatDistance(dist))}`
             : '';
         const popupHtml = `
             <div style="font-family: Inter, sans-serif; font-size: 13px; line-height: 1.45;">
-                <strong>${escapeHtml(item.nazwa_obiektu)}</strong><br>
-                ${escapeHtml(item.ulica_i_numer)}, ${escapeHtml(item.miasto)}<br>
-                <em>${escapeHtml(item.opis_lokalizacji)}</em><br>
+                <strong>${escapeHtml(itemTitle(item))}</strong><br>
+                ${itemAddress(item) ? `${escapeHtml(itemAddress(item))}<br>` : ''}
+                ${item.opis_lokalizacji ? `<em>${escapeHtml(item.opis_lokalizacji)}</em><br>` : ''}
                 <strong>Dostępność:</strong> ${escapeHtml(item.dostepnosc || 'brak danych')}<br>
                 <strong>Status:</strong> ${escapeHtml(st.label)}${distLine}
             </div>
         `;
-        const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon })
-            .bindPopup(popupHtml);
+        const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon }).bindPopup(popupHtml);
         markers.push(marker);
-        markerByKey.set(item._key, marker);
+        markerByKey.set(key, marker);
     });
+
     if (typeof aedMarkersLayer.addLayers === 'function') {
-        aedMarkersLayer.addLayers(markers); // jedna operacja zamiast tysięcy
+        aedMarkersLayer.addLayers(markers); // jedna operacja zamiast setek
     } else {
         markers.forEach(marker => marker.addTo(aedMarkersLayer));
     }
+}
 
-    const topItems = enriched.slice(0, 6);
-    if (topItems.length === 0) {
+// Dokładanie znaczników po przesunięciu mapy; przy zbyt dużej liczbie czyścimy mapę, zostawiając pozycje z listy.
+function showMoreMarkers(items) {
+    if (markerByKey.size + items.length > MAX_MARKERS_ON_MAP) {
+        resetMarkers();
+        addMarkers(listItems);
+    }
+    addMarkers(items);
+}
+
+function renderNearestList(items) {
+    const listContainer = document.getElementById('nearest-list');
+    if (!listContainer) return;
+
+    if (items.length === 0) {
         listContainer.innerHTML = '<p class="helper-text">Brak urządzeń AED ze współrzędnymi GPS w aktualnej bazie danych.</p>';
-        if (userLat !== null && userLon !== null) {
-            aedMap.setView([userLat, userLon], 14);
-        } else {
-            aedMap.setView([52.0693, 19.4803], 6);
-        }
         return;
     }
 
-    listContainer.innerHTML = topItems.map(item => {
+    listContainer.innerHTML = items.map(item => {
         const st = getStatusInfo(item.status);
-        const distBadge = item.dist !== null
-            ? `<span class="distance-badge">${escapeHtml(formatDistance(item.dist))}</span>`
+        const dist = distanceFromUser(item);
+        const distBadge = dist !== null
+            ? `<span class="distance-badge">${escapeHtml(formatDistance(dist))}</span>`
             : '';
         return `
-            <article class="nearest-card" data-key="${escapeHtml(item._key)}">
+            <article class="nearest-card" data-key="${escapeHtml(itemKey(item))}">
                 <div class="nearest-card-top">
-                    <span class="nearest-card-title">${escapeHtml(item.nazwa_obiektu)}</span>
+                    <span class="nearest-card-title">${escapeHtml(itemTitle(item))}</span>
                     ${distBadge}
                 </div>
-                <p class="nearest-card-meta">${escapeHtml(item.ulica_i_numer)}, ${escapeHtml(item.miasto)}</p>
-                <p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>
+                ${itemAddress(item) ? `<p class="nearest-card-meta">${escapeHtml(itemAddress(item))}</p>` : ''}
+                ${item.opis_lokalizacji ? `<p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>` : ''}
                 <span class="status-pill ${st.cls}">${escapeHtml(st.label)} • ${escapeHtml(item.dostepnosc || 'brak danych')}</span>
             </article>
         `;
@@ -208,11 +241,9 @@ function renderAedOnMapAndList(items, userLat, userLon) {
 
     listContainer.querySelectorAll('.nearest-card').forEach(card => {
         card.addEventListener('click', () => {
-            const key = card.dataset.key;
-            const marker = markerByKey.get(key);
+            const marker = markerByKey.get(card.dataset.key);
             if (marker && aedMap) {
-                const latLng = marker.getLatLng();
-                aedMap.setView(latLng, 16);
+                aedMap.setView(marker.getLatLng(), 16);
                 if (typeof aedMarkersLayer.zoomToShowLayer === 'function') {
                     // znacznik może siedzieć w klastrze: rozbij klaster, potem otwórz dymek
                     aedMarkersLayer.zoomToShowLayer(marker, () => marker.openPopup());
@@ -222,17 +253,71 @@ function renderAedOnMapAndList(items, userLat, userLon) {
             }
         });
     });
+}
 
-    if (userLat !== null && userLon !== null) {
-        const nearest = topItems[0];
-        const bounds = L.latLngBounds([
-            [userLat, userLon],
-            [nearest.szerokosc_geo, nearest.dlugosc_geo]
-        ]);
-        aedMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+// Pierwsze załadowanie wokół punktu (lokalizacja użytkownika albo środek Polski): znaczniki, lista i kadr mapy.
+function renderAedAround(items, center, radiusKm) {
+    if (!aedMap || !aedMarkersLayer) return;
+    aedMap.invalidateSize();
+    resetMarkers();
+    loadedView = { lat: center[0], lon: center[1], radiusKm };
+
+    // z lokalizacją pozycje są już posortowane od najbliższej; bez niej lista pokazuje najbliższe środkowi mapy
+    listItems = items.slice(0, 6);
+    addMarkers(items);
+    renderNearestList(listItems);
+
+    ignoreMovesUntil = Date.now() + 1500; // kadrowanie poniżej wywoła moveend, którego nie traktujemy jako ruchu użytkownika
+    if (items.length === 0) {
+        aedMap.setView(center, userPos ? 14 : 6);
+    } else if (userPos) {
+        aedMap.fitBounds(L.latLngBounds([[userPos.lat, userPos.lon], [items[0].szerokosc_geo, items[0].dlugosc_geo]]),
+            { padding: [60, 60], maxZoom: 15 });
     } else {
-        const group = L.featureGroup(Array.from(markerByKey.values()));
-        aedMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 13 });
+        aedMap.fitBounds(L.featureGroup(Array.from(markerByKey.values())).getBounds(), { padding: [40, 40], maxZoom: 13 });
+    }
+}
+
+function onMapMoved() {
+    if (Date.now() < ignoreMovesUntil || !loadedView) return;
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(loadMoreForViewport, 450);
+}
+
+// Po przesunięciu/oddaleniu mapy: jeśli widok wychodzi poza pobrany obszar, dociągnij najbliższe punkty od środka widoku.
+async function loadMoreForViewport() {
+    if (!aedMap || !loadedView || loadedView.radiusKm === null) return; // pobrano już wszystko
+    const bounds = aedMap.getBounds();
+    const center = aedMap.getCenter();
+    const farthestCorner = Math.max(...[bounds.getNorthEast(), bounds.getNorthWest(), bounds.getSouthEast(), bounds.getSouthWest()]
+        .map(c => haversineKm(loadedView.lat, loadedView.lon, c.lat, c.lng)));
+    if (farthestCorner <= loadedView.radiusKm) return; // cały widok jest pokryty
+    // samo oddalenie bez przesunięcia dałoby te same punkty
+    if (haversineKm(loadedView.lat, loadedView.lon, center.lat, center.lng) < loadedView.radiusKm * 0.1) return;
+
+    const seq = ++fetchSeq;
+    try {
+        const data = await fetchNearby(center.lat, center.lng);
+        if (seq !== fetchSeq) return; // w międzyczasie ruszono mapę dalej
+        showMoreMarkers(data.items);
+        loadedView = { lat: center.lat, lon: center.lng, radiusKm: data.radiusKm };
+    } catch (_) {
+        // zostają dotychczasowe znaczniki; kolejny ruch mapy spróbuje ponownie
+    }
+}
+
+async function loadAround(lat, lon) {
+    const geoStatus = document.getElementById('geo-status');
+    const seq = ++fetchSeq;
+    try {
+        const data = await fetchNearby(lat, lon);
+        if (seq !== fetchSeq) return;
+        renderAedAround(data.items, [lat, lon], data.radiusKm);
+    } catch (_) {
+        if (geoStatus) {
+            geoStatus.className = 'geo-status error';
+            geoStatus.textContent = 'Nie udało się pobrać listy defibrylatorów. Spróbuj ponownie za chwilę.';
+        }
     }
 }
 
@@ -250,23 +335,13 @@ async function locateAndLoadNearestAed() {
         if (aedMap) aedMap.invalidateSize();
     }, 100);
 
-    let items = [];
-    try {
-        const res = await fetch('/api/aed-list');
-        if (res.ok) {
-            const data = await res.json();
-            items = data.items || [];
-        }
-    } catch (_) {
-        items = [];
-    }
-
+    userPos = null;
     if (!('geolocation' in navigator)) {
         if (geoStatus) {
             geoStatus.className = 'geo-status error';
-            geoStatus.textContent = 'Twoja przeglądarka nie obsługuje geolokalizacji. Wyświetlono wszystkie AED z bazy.';
+            geoStatus.textContent = 'Twoja przeglądarka nie obsługuje geolokalizacji. Wyświetlono defibrylatory ze środka Polski; przesuń mapę, aby wczytać kolejne.';
         }
-        renderAedOnMapAndList(items, null, null);
+        await loadAround(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
         return;
     }
 
@@ -279,6 +354,7 @@ async function locateAndLoadNearestAed() {
         pos => {
             const userLat = pos.coords.latitude;
             const userLon = pos.coords.longitude;
+            userPos = { lat: userLat, lon: userLon };
 
             if (geoStatus) {
                 geoStatus.className = 'geo-status success';
@@ -301,14 +377,14 @@ async function locateAndLoadNearestAed() {
                 }
             }
 
-            renderAedOnMapAndList(items, userLat, userLon);
+            loadAround(userLat, userLon);
         },
         () => {
             if (geoStatus) {
                 geoStatus.className = 'geo-status error';
-                geoStatus.textContent = 'Brak zgody na lokalizację lub niedostępny sygnał GPS. Wyświetlono defibrylatory z bazy.';
+                geoStatus.textContent = 'Brak zgody na lokalizację lub niedostępny sygnał GPS. Wyświetlono defibrylatory ze środka Polski; przesuń mapę, aby wczytać kolejne.';
             }
-            renderAedOnMapAndList(items, null, null);
+            loadAround(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );

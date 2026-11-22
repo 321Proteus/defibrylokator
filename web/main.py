@@ -7,13 +7,14 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
-from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 import aed_db
 import feed
+import nearby
 from pydantic import ValidationError
 
 from validator import (
@@ -160,16 +161,32 @@ def load_items_from_csv():
     return items
 
 
-@app.get("/api/aed-list")
-async def get_aed_list():
-    """Postgres is the source of truth when DATABASE_URL is set; otherwise the master CSV."""
+async def _all_items() -> list:
+    """Every stored AED: Postgres when configured (cached in aed_db), otherwise the master CSV."""
     if aed_db.enabled():
         try:
-            return {"items": await run_in_threadpool(aed_db.load_items)}
+            return await run_in_threadpool(aed_db.load_items)
         except Exception as exc:
-            print(f"/api/aed-list: błąd bazy danych: {exc}")
+            print(f"błąd bazy danych: {exc}")
             raise HTTPException(status_code=503, detail="Baza danych jest chwilowo niedostępna.")
-    return {"items": load_items_from_csv()}
+    return await run_in_threadpool(load_items_from_csv)
+
+
+@app.get("/api/aed-nearby")
+async def get_aed_nearby(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    limit: int = Query(nearby.DEFAULT_LIMIT, ge=1, le=nearby.MAX_LIMIT),
+):
+    """The `limit` AEDs closest to a point (user location or map centre); what the map loads instead of everything."""
+    result = nearby.nearest(await _all_items(), lat, lon, limit)
+    return JSONResponse(result, headers={"Cache-Control": "public, max-age=30"})
+
+
+@app.get("/api/aed-list")
+async def get_aed_list():
+    """Every AED at once (large: tens of thousands of rows). The map uses /api/aed-nearby instead."""
+    return {"items": await _all_items()}
 
 
 @app.post("/upload-aed")
