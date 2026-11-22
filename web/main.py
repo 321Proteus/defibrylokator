@@ -78,6 +78,50 @@ async def serve_logo():
     raise HTTPException(status_code=404, detail="Brak pliku icon.png")
 
 
+@app.get("/api/aed-list")
+async def get_aed_list():
+    if not MASTER_CSV_PATH.exists():
+        return {"items": []}
+
+    df = pd.read_csv(
+        MASTER_CSV_PATH,
+        sep=";",
+        encoding="utf-8-sig",
+        dtype=str
+    ).fillna("")
+
+    items = []
+    for _, row in df.iterrows():
+        lat_raw = str(row.get("szerokosc_geo", "")).strip().replace(",", ".")
+        lon_raw = str(row.get("dlugosc_geo", "")).strip().replace(",", ".")
+        try:
+            lat = float(lat_raw)
+            lon = float(lon_raw)
+        except ValueError:
+            continue
+
+        if pd.isna(lat) or pd.isna(lon):
+            continue
+
+        items.append({
+            "id_zewnetrzne": row.get("id_zewnetrzne", ""),
+            "nazwa_obiektu": row.get("nazwa_obiektu", ""),
+            "miasto": row.get("miasto", ""),
+            "kod_pocztowy": row.get("kod_pocztowy", ""),
+            "ulica_i_numer": row.get("ulica_i_numer", ""),
+            "opis_lokalizacji": row.get("opis_lokalizacji", ""),
+            "szerokosc_geo": lat,
+            "dlugosc_geo": lon,
+            "dostepnosc": row.get("dostepnosc", ""),
+            "godziny_otwarcia": row.get("godziny_otwarcia", ""),
+            "status": row.get("status", ""),
+            "dysponent": row.get("dysponent", ""),
+            "kontakt_telefon": row.get("kontakt_telefon", ""),
+        })
+
+    return {"items": items}
+
+
 @app.post("/upload-aed")
 async def upload_excel(
     file: UploadFile = File(...),
