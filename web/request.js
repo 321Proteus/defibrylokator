@@ -102,7 +102,23 @@ function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">Współtwórcy OpenStreetMap</a>'
         }).addTo(aedMap);
-        aedMarkersLayer = L.layerGroup().addTo(aedMap);
+        // Tysiące punktów: grupujemy znaczniki w klastry (fallback na zwykłą warstwę, gdy wtyczka się nie załaduje).
+        aedMarkersLayer = (typeof L.markerClusterGroup === 'function'
+            ? L.markerClusterGroup({
+                chunkedLoading: true,
+                showCoverageOnHover: false,
+                maxClusterRadius: 50,
+                iconCreateFunction: (cluster) => {
+                    const count = cluster.getChildCount();
+                    const size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
+                    return L.divIcon({
+                        html: `<div class="aed-cluster aed-cluster-${size}"><span>${count}</span></div>`,
+                        className: '',
+                        iconSize: [40, 40]
+                    });
+                }
+            })
+            : L.layerGroup()).addTo(aedMap);
     }
     aedMap.invalidateSize();
     return aedMap;
@@ -135,6 +151,7 @@ function renderAedOnMapAndList(items, userLat, userLon) {
         popupAnchor: [0, -12]
     });
 
+    const markers = [];
     enriched.forEach(item => {
         const st = getStatusInfo(item.status);
         const distLine = item.dist !== null
@@ -150,10 +167,15 @@ function renderAedOnMapAndList(items, userLat, userLon) {
             </div>
         `;
         const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon })
-            .bindPopup(popupHtml)
-            .addTo(aedMarkersLayer);
+            .bindPopup(popupHtml);
+        markers.push(marker);
         markerByKey.set(item._key, marker);
     });
+    if (typeof aedMarkersLayer.addLayers === 'function') {
+        aedMarkersLayer.addLayers(markers); // jedna operacja zamiast tysięcy
+    } else {
+        markers.forEach(marker => marker.addTo(aedMarkersLayer));
+    }
 
     const topItems = enriched.slice(0, 6);
     if (topItems.length === 0) {
@@ -191,7 +213,12 @@ function renderAedOnMapAndList(items, userLat, userLon) {
             if (marker && aedMap) {
                 const latLng = marker.getLatLng();
                 aedMap.setView(latLng, 16);
-                marker.openPopup();
+                if (typeof aedMarkersLayer.zoomToShowLayer === 'function') {
+                    // znacznik może siedzieć w klastrze: rozbij klaster, potem otwórz dymek
+                    aedMarkersLayer.zoomToShowLayer(marker, () => marker.openPopup());
+                } else {
+                    marker.openPopup();
+                }
             }
         });
     });
