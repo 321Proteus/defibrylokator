@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polska Baza AED – Ogólnopolski rejestr defibrylatorów</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
     <main class="container">
@@ -26,6 +26,9 @@
             </button>
             <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-guide" id="tab-guide" data-target="panel-guide">
                 Wzór tabeli i informacje o AED
+            </button>
+            <button type="button" class="tab-btn tab-btn-emergency" role="tab" aria-selected="false" aria-controls="panel-nearest" id="tab-nearest" data-target="panel-nearest">
+                Znajdź najbliższe AED
             </button>
         </nav>
 
@@ -240,9 +243,28 @@
                 </div>
             </div>
         </section>
+
+        <section id="panel-nearest" class="tab-panel" role="tabpanel" aria-labelledby="tab-nearest" hidden>
+            <div class="nearest-header">
+                <div>
+                    <h2>Znajdź najbliższe AED</h2>
+                    <p>Mapa automatycznie lokalizuje Twoje położenie i wskazuje najbliższe defibrylatory zapisane w bazie.</p>
+                </div>
+                <button type="button" id="refresh-location-btn" class="btn-emergency-outline">Odśwież lokalizację</button>
+            </div>
+
+            <div id="geo-status" class="geo-status" role="status" aria-live="polite">
+                Pobieranie Twojej lokalizacji...
+            </div>
+
+            <div id="aed-map" class="aed-map" aria-label="Mapa najbliższych defibrylatorów AED"></div>
+
+            <h3 class="guide-subheading">Najbliższe defibrylatory w bazie</h3>
+            <div id="nearest-list" class="nearest-list"></div>
+        </section>
     </main>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="request.js?v=12"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="request.js?v=13"></script>
 </body>
 </html>
