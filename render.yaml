@@ -1,0 +1,26 @@
+# Render blueprint for the AED web app (Dashboard -> New -> Blueprint, pick this repo).
+services:
+  - type: web
+    name: defibrylokator
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd web && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: PUBLIC_BASE_URL
+        sync: false
