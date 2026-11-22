@@ -572,7 +572,6 @@ if (singleForm) {
                 showResult(singleResultBox, 'success', `<strong>${escapeHtml(data.message).replace(/\n/g, '<br>')}</strong>`);
                 singleForm.reset();
             } else if (data.status === 'validation_errors') {
-                showResult(singleResultBox, 'error', `<strong>Formularz zawiera błędy (${data.errors.length}).</strong> Popraw zaznaczone pola i wyślij ponownie.`);
                 await burnInvalidFieldsWithDragon(data.errors);
                 const firstField = singleForm.elements[data.errors[0]?.pole];
                 if (firstField) firstField.focus();
