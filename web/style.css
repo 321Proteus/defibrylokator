@@ -255,6 +255,10 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     color: #1e3a8a;
 }
 
+#file-selected-info.visible {
+    display: block;
+}
+
 .consent-group {
     display: flex;
     align-items: flex-start;
@@ -315,7 +319,8 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     transform: translateY(0);
 }
 
-.actions button:disabled {
+.actions button:disabled,
+.actions button[aria-disabled="true"] {
     background-color: #94a3b8;
     cursor: not-allowed;
     transform: none;
@@ -380,15 +385,20 @@ input:focus, select:focus, button:focus, a:focus, .excel-preview-wrapper:focus {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
 }
 
-.field input.clearing-invalid {
-    animation: fieldShake 0.32s ease-in-out;
+.field input.clearing-invalid,
+.field select.clearing-invalid {
+    animation: fieldBurn 0.45s ease-in-out;
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.85), 0 0 6px rgba(220, 38, 38, 0.9);
+    border-color: #f97316;
+    background-color: #ffedd5;
 }
 
-@keyframes fieldShake {
+@keyframes fieldBurn {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    50% { transform: translateX(4px); }
-    75% { transform: translateX(-2px); }
+    20% { transform: translateX(-5px) rotate(-0.4deg); }
+    40% { transform: translateX(5px) rotate(0.4deg); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(3px); }
 }
 
 .field-error {
@@ -722,6 +732,64 @@ code {
     justify-content: center;
     font-weight: 800;
     font-size: 13px;
+}
+
+/* Smok ziejący ogniem (v1) */
+.fire-dragon {
+    position: fixed;
+    top: 120px;
+    left: calc(100vw + 160px);
+    width: 150px;
+    height: 110px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                top 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.25s ease;
+    filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.35));
+}
+
+.fire-dragon.visible {
+    opacity: 1;
+}
+
+.fire-dragon .dragon-body {
+    animation: dragonHover 0.6s ease-in-out infinite alternate;
+}
+
+.fire-dragon .dragon-wing {
+    transform-origin: 95px 46px;
+    animation: wingFlap 0.24s ease-in-out infinite alternate;
+}
+
+.fire-dragon .dragon-flame {
+    opacity: 0;
+    transform-origin: 34px 52px;
+    transform: scaleX(0.15) scaleY(0.4);
+    transition: opacity 0.12s ease, transform 0.18s ease-out;
+}
+
+.fire-dragon.breathing .dragon-flame {
+    opacity: 1;
+    transform: scaleX(1) scaleY(1);
+    animation: flameFlicker 0.11s ease-in-out infinite alternate;
+}
+
+@keyframes dragonHover {
+    from { transform: translateY(-4px); }
+    to { transform: translateY(4px); }
+}
+
+@keyframes wingFlap {
+    from { transform: rotate(-18deg) scaleY(1); }
+    to { transform: rotate(22deg) scaleY(0.75); }
+}
+
+@keyframes flameFlicker {
+    from { transform: scaleX(0.94) scaleY(0.9); }
+    to { transform: scaleX(1.08) scaleY(1.12); }
 }
 
 @media (max-width: 650px) {
