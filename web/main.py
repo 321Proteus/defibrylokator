@@ -1,8 +1,10 @@
 from typing import Any, Dict
 from fastapi import FastAPI, Request, UploadFile, File, Form, Body, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from pathlib import Path
 import shutil
+import hashlib
+import json
 import os
 import re
 import uuid
@@ -391,13 +393,20 @@ async def get_machine_readable_dataset():
 
 
 async def _feed_content(request: Request) -> bytes:
-    """Feed XML; the resource URL points back at this app (PUBLIC_BASE_URL overrides the request's host)."""
+    """Feed XML; the resource URL points back at this app (PUBLIC_BASE_URL overrides the request's host).
+
+    MCOD re-downloads a link resource only when its metadata changes, so the CSV URL carries a
+    fingerprint of the data (?v=...): new or edited AEDs -> new URL -> MCOD refreshes the file.
+    """
     base = os.environ.get("PUBLIC_BASE_URL") or str(request.base_url)
     if aed_db.enabled():
-        total = len(await run_in_threadpool(aed_db.load_items))
+        items = await run_in_threadpool(aed_db.load_items)
     else:
-        total = len(load_items_from_csv())
-    return feed.build_feed(f"{base.rstrip('/')}/dane-gov-export.csv", total)
+        items = load_items_from_csv()
+    fingerprint = hashlib.md5(
+        json.dumps(sorted(items, key=lambda i: str(i["id_zewnetrzne"])), sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:12]
+    return feed.build_feed(f"{base.rstrip('/')}/dane-gov-export.csv?v={fingerprint}", len(items))
 
 
 @app.api_route("/aed-feed.xml", methods=["GET", "HEAD"])
