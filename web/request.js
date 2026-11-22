@@ -26,7 +26,9 @@ function activateTab(btn, moveFocus = false) {
         targetPanel.hidden = false;
     }
     if (moveFocus) btn.focus();
-    if (btn.dataset.target === 'panel-nearest') locateAndLoadNearestAed();
+    if (btn.dataset.target === 'panel-nearest') {
+        requestAnimationFrame(() => locateAndLoadNearestAed());
+    }
 }
 
 tabButtons.forEach((btn, i) => {
@@ -46,7 +48,6 @@ tabButtons.forEach((btn, i) => {
     });
 });
 
-// Regiony live istnieją w DOM cały czas; zmiana treści wywołuje komunikat czytnika ekranu (WCAG 4.1.3).
 function showResult(box, kind, html) {
     box.innerHTML = html;
     box.className = kind;
@@ -57,7 +58,6 @@ function clearResult(box) {
     box.innerHTML = '';
 }
 
-// aria-disabled zamiast disabled - fokus klawiatury nie ucieka z przycisku podczas wysyłania (WCAG 2.4.3).
 function setBusy(btn, busy, label) {
     btn.setAttribute('aria-disabled', String(busy));
     btn.textContent = label;
@@ -103,9 +103,8 @@ function ensureMapInitialized(centerLat = 52.0693, centerLon = 19.4803, zoom = 6
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">Współtwórcy OpenStreetMap</a>'
         }).addTo(aedMap);
         aedMarkersLayer = L.layerGroup().addTo(aedMap);
-    } else {
-        aedMap.invalidateSize();
     }
+    aedMap.invalidateSize();
     return aedMap;
 }
 
@@ -113,6 +112,7 @@ function renderAedOnMapAndList(items, userLat, userLon) {
     const listContainer = document.getElementById('nearest-list');
     if (!listContainer || !aedMap || !aedMarkersLayer) return;
 
+    aedMap.invalidateSize();
     aedMarkersLayer.clearLayers();
     markerByKey.clear();
 
@@ -158,6 +158,11 @@ function renderAedOnMapAndList(items, userLat, userLon) {
     const topItems = enriched.slice(0, 6);
     if (topItems.length === 0) {
         listContainer.innerHTML = '<p class="helper-text">Brak urządzeń AED ze współrzędnymi GPS w aktualnej bazie danych.</p>';
+        if (userLat !== null && userLon !== null) {
+            aedMap.setView([userLat, userLon], 14);
+        } else {
+            aedMap.setView([52.0693, 19.4803], 6);
+        }
         return;
     }
 
@@ -191,14 +196,14 @@ function renderAedOnMapAndList(items, userLat, userLon) {
         });
     });
 
-    if (userLat !== null && userLon !== null && topItems.length > 0) {
+    if (userLat !== null && userLon !== null) {
         const nearest = topItems[0];
         const bounds = L.latLngBounds([
             [userLat, userLon],
             [nearest.szerokosc_geo, nearest.dlugosc_geo]
         ]);
         aedMap.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
-    } else if (topItems.length > 0) {
+    } else {
         const group = L.featureGroup(Array.from(markerByKey.values()));
         aedMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 13 });
     }
@@ -206,14 +211,17 @@ function renderAedOnMapAndList(items, userLat, userLon) {
 
 async function locateAndLoadNearestAed() {
     const geoStatus = document.getElementById('geo-status');
-    if (!ensureMapInitialized() && geoStatus) {
-        geoStatus.className = 'geo-status error';
-        geoStatus.textContent = 'Nie udało się załadować mapy. Sprawdź połączenie z internetem i odśwież stronę.';
+    if (!ensureMapInitialized()) {
+        if (geoStatus) {
+            geoStatus.className = 'geo-status error';
+            geoStatus.textContent = 'Nie udało się załadować mapy. Sprawdź połączenie z internetem i odśwież stronę.';
+        }
         return;
     }
-    if (aedMap) {
-        setTimeout(() => aedMap.invalidateSize(), 60);
-    }
+
+    setTimeout(() => {
+        if (aedMap) aedMap.invalidateSize();
+    }, 100);
 
     let items = [];
     try {
@@ -425,13 +433,101 @@ function showFieldError(fieldElement, message) {
     wrapper.appendChild(errorEl);
 }
 
-function clearInvalidFieldInstant(fieldElement, message) {
-    if (!fieldElement) return;
-    fieldElement.value = '';
-    fieldElement.classList.add('invalid', 'clearing-invalid');
-    fieldElement.setAttribute('aria-invalid', 'true');
-    showFieldError(fieldElement, message);
-    setTimeout(() => fieldElement.classList.remove('clearing-invalid'), 350);
+/* --- Smok ziejący ogniem na błędne pola (v1) --- */
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+let dragonEl = null;
+let dragonTaskId = 0;
+
+function getOrCreateDragon() {
+    if (dragonEl) return dragonEl;
+    dragonEl = document.createElement('div');
+    dragonEl.className = 'fire-dragon';
+    dragonEl.setAttribute('aria-hidden', 'true');
+    dragonEl.innerHTML = `
+        <svg viewBox="0 0 180 120" width="150" height="110" xmlns="http://www.w3.org/2000/svg">
+            <g class="dragon-flame">
+                <path d="M52 54 Q22 36 2 52 Q20 68 52 58 Z" fill="#f97316"/>
+                <path d="M52 55 Q28 43 10 53 Q27 63 52 57 Z" fill="#facc15"/>
+                <circle cx="14" cy="46" r="2.5" fill="#fde047"/>
+                <circle cx="24" cy="63" r="2" fill="#fb923c"/>
+                <circle cx="8" cy="57" r="1.8" fill="#fef08a"/>
+            </g>
+            <g class="dragon-body">
+                <path d="M132 68 Q158 72 174 56 Q162 78 134 78 Z" fill="#b91c1c"/>
+                <polygon points="174,56 166,52 169,62" fill="#dc143c"/>
+                <ellipse cx="110" cy="64" rx="28" ry="18" fill="#dc143c"/>
+                <path d="M92 72 Q110 82 128 72 Q110 76 92 72 Z" fill="#fca5a5"/>
+                <path class="dragon-wing" d="M104 52 Q122 14 148 24 Q134 42 122 54 Z" fill="#991b1b"/>
+                <path d="M88 58 Q74 44 62 46 L66 64 Q80 68 90 66 Z" fill="#dc143c"/>
+                <ellipse cx="60" cy="53" rx="14" ry="11" fill="#dc143c"/>
+                <polygon points="66,44 74,32 72,45" fill="#fbbf24"/>
+                <polygon points="58,43 63,31 64,44" fill="#fbbf24"/>
+                <circle cx="56" cy="50" r="2.6" fill="#fef08a"/>
+                <circle cx="55.3" cy="50" r="1.3" fill="#0f172a"/>
+                <path d="M48 56 L58 56 L51 61 Z" fill="#7f1d1d"/>
+            </g>
+        </svg>
+    `;
+    document.body.appendChild(dragonEl);
+    return dragonEl;
+}
+
+async function burnInvalidFieldsWithDragon(errorItems) {
+    const validTargets = errorItems
+        .map(err => ({ field: singleForm.elements[err.pole], message: err.komunikat }))
+        .filter(item => item.field);
+
+    if (validTargets.length === 0) return;
+
+    const currentTask = ++dragonTaskId;
+    const dragon = getOrCreateDragon();
+
+    const firstRect = validTargets[0].field.getBoundingClientRect();
+    dragon.classList.remove('breathing', 'visible');
+    dragon.style.transition = 'none';
+    dragon.style.left = `${window.innerWidth + 140}px`;
+    dragon.style.top = `${Math.max(70, firstRect.top - 10)}px`;
+    void dragon.offsetWidth;
+    dragon.style.transition = '';
+
+    await sleep(30);
+    if (currentTask !== dragonTaskId) return;
+    dragon.classList.add('visible');
+
+    for (const target of validTargets) {
+        if (currentTask !== dragonTaskId) return;
+        target.field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await sleep(220);
+
+        const rect = target.field.getBoundingClientRect();
+        const targetX = Math.min(window.innerWidth - 90, rect.right + 42);
+        const targetY = Math.max(65, rect.top + rect.height / 2 - 6);
+
+        dragon.style.left = `${targetX}px`;
+        dragon.style.top = `${targetY}px`;
+        await sleep(520);
+        if (currentTask !== dragonTaskId) return;
+
+        dragon.classList.add('breathing');
+        await sleep(240);
+
+        target.field.value = '';
+        target.field.classList.add('invalid', 'clearing-invalid');
+        target.field.setAttribute('aria-invalid', 'true');
+        showFieldError(target.field, target.message);
+
+        await sleep(300);
+        dragon.classList.remove('breathing');
+        target.field.classList.remove('clearing-invalid');
+        await sleep(120);
+    }
+
+    if (currentTask !== dragonTaskId) return;
+    dragon.style.left = `-180px`;
+    dragon.style.top = `60px`;
+    await sleep(550);
+    if (currentTask !== dragonTaskId) return;
+    dragon.classList.remove('visible');
 }
 
 if (singleForm) {
@@ -476,8 +572,8 @@ if (singleForm) {
                 showResult(singleResultBox, 'success', `<strong>${escapeHtml(data.message).replace(/\n/g, '<br>')}</strong>`);
                 singleForm.reset();
             } else if (data.status === 'validation_errors') {
-                data.errors.forEach(err => clearInvalidFieldInstant(singleForm.elements[err.pole], err.komunikat));
                 showResult(singleResultBox, 'error', `<strong>Formularz zawiera błędy (${data.errors.length}).</strong> Popraw zaznaczone pola i wyślij ponownie.`);
+                await burnInvalidFieldsWithDragon(data.errors);
                 const firstField = singleForm.elements[data.errors[0]?.pole];
                 if (firstField) firstField.focus();
             } else {
@@ -491,7 +587,6 @@ if (singleForm) {
     });
 }
 
-// --- Podgląd lokalizacji na mapie (Leaflet) ---
 const checkAddressBtn = document.getElementById('check-address-btn');
 const previewStatus = document.getElementById('preview-status');
 const previewMapEl = document.getElementById('preview-map');
@@ -505,9 +600,10 @@ const geoFields = singleForm ? {
 
 let previewMap = null;
 let previewMarker = null;
-let previewRun = 0; // numer ostatniego zapytania - odrzucamy spóźnione odpowiedzi
+let previewRun = 0;
 
 function setPreviewStatus(text, isError = false) {
+    if (!previewStatus) return;
     previewStatus.textContent = text;
     previewStatus.classList.toggle('is-error', isError);
 }
@@ -519,6 +615,7 @@ function resetPreview() {
 }
 
 function placeMarker(lat, lon, recenter) {
+    if (!previewMapEl) return;
     if (typeof L === 'undefined') {
         setPreviewStatus('Nie udało się załadować mapy. Współrzędne możesz wpisać ręcznie lub pominąć ten krok.', true);
         return;
@@ -542,15 +639,15 @@ function placeMarker(lat, lon, recenter) {
         previewMarker.setLatLng([lat, lon]);
     }
     if (recenter) previewMap.setView([lat, lon], 17);
-    previewMap.invalidateSize(); // kontener był ukryty, gdy powstawała mapa
+    previewMap.invalidateSize();
 }
 
 function setCoordinateFields(lat, lon) {
+    if (!geoFields || !geoFields.lat || !geoFields.lon) return;
     geoFields.lat.value = Number(lat).toFixed(6);
     geoFields.lon.value = Number(lon).toFixed(6);
 }
 
-// Ręczne przesunięcie pinezki: aktualizuje współrzędne i dopytuje serwer o kod pocztowy dla nowego punktu.
 async function moveMarker(lat, lon) {
     const run = ++previewRun;
     setCoordinateFields(lat, lon);
@@ -561,7 +658,7 @@ async function moveMarker(lat, lon) {
         const data = await res.json();
         if (run !== previewRun) return;
         if (data.found) {
-            geoFields.kod.value = data.kod_pocztowy || '';
+            if (geoFields && geoFields.kod) geoFields.kod.value = data.kod_pocztowy || '';
             setPreviewStatus(`Wskazany punkt: ${data.adres_znaleziony}. Sprawdź, czy kod pocztowy jest poprawny.`);
         } else {
             setPreviewStatus(data.message || 'Nie znaleziono adresu dla wskazanego punktu. Kod pocztowy wpisz ręcznie.', true);
@@ -593,7 +690,7 @@ if (checkAddressBtn && geoFields) {
                 return;
             }
             setCoordinateFields(data.lat, data.lon);
-            geoFields.kod.value = data.kod_pocztowy || '';
+            if (geoFields.kod) geoFields.kod.value = data.kod_pocztowy || '';
             placeMarker(data.lat, data.lon, true);
             setPreviewStatus(`Znaleziono: ${data.adres_znaleziony || 'adres'}. Jeśli pinezka wskazuje inne miejsce, przeciągnij ją, kliknij w mapę albo popraw współrzędne.`);
         } catch (err) {
@@ -603,24 +700,28 @@ if (checkAddressBtn && geoFields) {
         }
     });
 
-    // Ręczna zmiana współrzędnych przesuwa pinezkę (alternatywa dla przeciągania - WCAG 2.5.7).
     const syncMarkerFromFields = () => {
+        if (!geoFields.lat || !geoFields.lon) return;
         const lat = parseFloat(geoFields.lat.value.replace(',', '.'));
         const lon = parseFloat(geoFields.lon.value.replace(',', '.'));
         if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= 49 && lat <= 54.9 && lon >= 14.1 && lon <= 24.2) {
             placeMarker(lat, lon, true);
         }
     };
-    geoFields.lat.addEventListener('change', syncMarkerFromFields);
-    geoFields.lon.addEventListener('change', syncMarkerFromFields);
+    if (geoFields.lat) geoFields.lat.addEventListener('change', syncMarkerFromFields);
+    if (geoFields.lon) geoFields.lon.addEventListener('change', syncMarkerFromFields);
 
-    // Zmiana adresu unieważnia podgląd: czyścimy ustalone dane, serwer ustali je od nowa.
-    [geoFields.adres, geoFields.miasto].forEach(el => el.addEventListener('input', () => {
-        if (geoFields.lat.value || geoFields.lon.value || geoFields.kod.value || !previewMapEl.hidden) {
-            geoFields.lat.value = geoFields.lon.value = geoFields.kod.value = '';
-            resetPreview();
-        }
-    }));
+    [geoFields.adres, geoFields.miasto].forEach(el => {
+        if (!el) return;
+        el.addEventListener('input', () => {
+            if ((geoFields.lat && geoFields.lat.value) || (geoFields.lon && geoFields.lon.value) || (geoFields.kod && geoFields.kod.value) || (previewMapEl && !previewMapEl.hidden)) {
+                if (geoFields.lat) geoFields.lat.value = '';
+                if (geoFields.lon) geoFields.lon.value = '';
+                if (geoFields.kod) geoFields.kod.value = '';
+                resetPreview();
+            }
+        });
+    });
 
     singleForm.addEventListener('reset', resetPreview);
 }
