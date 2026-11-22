@@ -1717,6 +1717,7 @@
     "Operator": "Operator",
     "LastVerified": "Last verified",
     "Source": "Source",
-    "Legend": "Legend"
+    "Legend": "Legend",
+    "AccessUnknown": "Access not specified"
   }
 }

@@ -1720,6 +1720,7 @@
     "Operator": "Operator",
     "LastVerified": "Ostatnia weryfikacja",
     "Source": "Źródło",
-    "Legend": "Legenda"
+    "Legend": "Legenda",
+    "AccessUnknown": "Dostępność nieokreślona"
   }
 }
