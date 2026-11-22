@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
-import os
+import sys
+from pathlib import Path
 from typing import Any
+
+# Reuse the web app's connection settings (web/.env or DATABASE_URL).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "web"))
+import aed_db  # noqa: E402
 
 
 INSERT_COLUMNS = (
@@ -122,11 +127,18 @@ def insert_records(records: list[dict[str, Any]]) -> int:
     params = []
     for record in records:
         row = {column: record.get(column) for column in INSERT_COLUMNS}
+        if row["zrodlo_id"] is None:
+            # UNIQUE (zrodlo, zrodlo_id) never matches NULLs, so re-imports
+            # would silently create duplicates.
+            raise ValueError(f"Rekord bez zrodlo_id: {record!r}")
+        # Explicit NULL bypasses the column DEFAULT and violates NOT NULL.
+        row["dostepnosc"] = row["dostepnosc"] or "nieznana"
         row["inne"] = Jsonb(row["inne"] or {})
         params.append(row)
 
-    database_url = os.environ.get("DATABASE_URL")
-    with psycopg.connect(database_url) as connection:
+    if not aed_db.enabled():
+        raise RuntimeError("Brak konfiguracji bazy: ustaw DATABASE_URL lub pola DB_* w web/.env.")
+    with aed_db._connect() as connection:
         with connection.cursor() as cursor:
             cursor.executemany(INSERT_SQL, params)
         connection.commit()

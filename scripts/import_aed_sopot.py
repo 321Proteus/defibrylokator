@@ -6,6 +6,8 @@ with the project's existing geocoder before anything is written to the DB.
 
 from __future__ import annotations
 
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -32,8 +34,27 @@ def field(item: dict, *names: str):
     return None
 
 
+def repair_mojibake(data):
+    """The source file is UTF-8 that was decoded as cp1250 (e.g. 'KoĹ›ciuszki'); undo that if it applies."""
+    text = json.dumps(data, ensure_ascii=False)
+    try:
+        return json.loads(text.encode("cp1250").decode("utf-8"))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return data  # already correct
+
+
+def geocode_candidates(address: str) -> list[str]:
+    """Nominatim fails on 'ul.' prefixes and house-number ranges ('25-27'); try cleaner variants."""
+    street, sep, rest = address.strip().partition(",")
+    street = re.sub(r"^(ul\.|al\.|pl\.|os\.)\s*", "", street, flags=re.IGNORECASE)
+    street = re.sub(r"(\d+)[A-Za-z]?\s*[-/]\s*\d+[A-Za-z]?", r"\1", street)  # '25-27' -> '25'
+    cleaned = street + sep + rest
+    without_postcode = f"{street}, {re.sub(r'\d{2}-\d{3}', '', rest).strip()}".strip(", ")
+    return list(dict.fromkeys([address, cleaned, without_postcode]))
+
+
 def build_records() -> list[dict]:
-    source = load_json(SOURCE_PATH)
+    source = repair_mojibake(load_json(SOURCE_PATH))
     records = []
     geocode_cache: dict[str, tuple[float, float]] = {}
 
@@ -49,7 +70,9 @@ def build_records() -> list[dict]:
             raise ValueError(f"Rekord Sopotu nie ma adresu: {item!r}")
 
         if address not in geocode_cache:
-            coordinates = forward_geocode(address)
+            coordinates = next(
+                (c for c in map(forward_geocode, geocode_candidates(address)) if c is not None), None
+            )
             if coordinates is None:
                 raise RuntimeError(f"Nie udało się geokodować adresu: {address}")
             geocode_cache[address] = coordinates
