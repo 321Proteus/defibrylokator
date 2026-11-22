@@ -1,6 +1,8 @@
 import hashlib
 import json
 import os
+import threading
+import time
 import shutil
 import uuid
 from pathlib import Path
@@ -346,6 +348,59 @@ async def reverse_preview(lat: float, lon: float):
         return {"found": False, "message": "Punkt leży poza granicami Polski."}
     found_address, kod = await run_in_threadpool(find_address_details, lat, lon)
     return {"found": bool(found_address), "kod_pocztowy": kod or "", "adres_znaleziony": found_address or ""}
+
+
+# --- adresy dla AED z OSM (zwykle bez adresu): geokodowanie odwrotne raz na punkt, wynik zapisujemy w bazie ---
+ADDRESS_LOOKUP_SLOTS = threading.BoundedSemaphore(int(os.environ.get("ADDRESS_LOOKUP_CONCURRENCY", "4")))
+ADDRESS_MISS_TTL = 600.0  # punktu bez wyniku nie pytamy ponownie przez 10 min (Nominatim: ~1 zapytanie/s)
+_address_misses: Dict[str, float] = {}
+
+
+def _address_payload(item: dict) -> dict:
+    return {
+        "found": bool(item.get("ulica_i_numer") or item.get("miasto")),
+        "ulica_i_numer": item.get("ulica_i_numer", ""),
+        "kod_pocztowy": item.get("kod_pocztowy", ""),
+        "miasto": item.get("miasto", ""),
+    }
+
+
+def _lookup_address(item_id: str):
+    """Zwraca dane adresu, 'busy' (za dużo zapytań naraz) albo None. Blokuje (limit ~1 zapytanie/s do geokodera)."""
+    item = aed_db.find_item(item_id)
+    if item is None:
+        return None
+    if item.get("ulica_i_numer") or item.get("miasto"):
+        return _address_payload(item)  # adres już jest (z bazy albo z wcześniejszego wyszukiwania)
+    if _address_misses.get(item_id, 0) > time.monotonic():
+        return _address_payload(item)
+    if not ADDRESS_LOOKUP_SLOTS.acquire(blocking=False):
+        return "busy"
+    try:
+        address, _ = find_address_details(item["szerokosc_geo"], item["dlugosc_geo"])
+        if not address:
+            _address_misses[item_id] = time.monotonic() + ADDRESS_MISS_TTL
+            return _address_payload(item)
+        return _address_payload(aed_db.store_address(item_id, address) or item)
+    finally:
+        ADDRESS_LOOKUP_SLOTS.release()
+
+
+@app.get("/api/aed-address")
+async def get_aed_address(id: str = Query(..., min_length=1, max_length=200)):
+    """Adres AED o danym id z listy: z bazy, a jeśli go brak - z geokodowania odwrotnego (i zapis na przyszłość).
+
+    Przyjmuje tylko id istniejących rekordów, więc nie jest otwartym proxy do geokodera.
+    """
+    if not aed_db.enabled():
+        raise HTTPException(status_code=404, detail="Uzupełnianie adresów wymaga bazy danych.")
+    result = await run_in_threadpool(_lookup_address, id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Nie ma takiego defibrylatora.")
+    if result == "busy":
+        return JSONResponse({"found": False, "busy": True}, status_code=429, headers={"Retry-After": "5"})
+    headers = {"Cache-Control": "public, max-age=86400"} if result["found"] else {}
+    return JSONResponse(result, headers=headers)
 
 
 @app.get("/dane-gov-export.csv")

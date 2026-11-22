@@ -202,12 +202,12 @@ def save_records(records: Iterable[dict[str, Any]]) -> int:
 # --- cached reads: the list and the MCOD feed are requested often and the table can hold tens of thousands of rows ---
 CACHE_SECONDS = float(os.environ.get("AED_CACHE_SECONDS", "30"))
 _cache_lock = threading.Lock()
-_cache: dict[str, Any] = {"at": 0.0, "items": None, "fingerprint": None}
+_cache: dict[str, Any] = {"at": 0.0, "items": None, "fingerprint": None, "by_id": {}, "keys": {}}
 
 
 def _invalidate_cache() -> None:
     with _cache_lock:
-        _cache.update(at=0.0, items=None, fingerprint=None)
+        _cache.update(at=0.0, items=None, fingerprint=None, by_id={}, keys={})
 
 
 def _fingerprint(items: list[dict[str, Any]]) -> str:
@@ -220,9 +220,12 @@ def load_items(use_cache: bool = True) -> list[dict[str, Any]]:
     with _cache_lock:
         if use_cache and _cache["items"] is not None and time.monotonic() - _cache["at"] < CACHE_SECONDS:
             return _cache["items"]
-    items = _load_items_uncached()
+    items, keys = _load_items_uncached()
     with _cache_lock:
-        _cache.update(at=time.monotonic(), items=items, fingerprint=_fingerprint(items))
+        _cache.update(
+            at=time.monotonic(), items=items, fingerprint=_fingerprint(items), keys=keys,
+            by_id={item["id_zewnetrzne"]: item for item in items},
+        )
     return items
 
 
@@ -233,15 +236,18 @@ def data_fingerprint() -> str:
         return _cache["fingerprint"]
 
 
-def _load_items_uncached() -> list[dict[str, Any]]:
-    """All stored AEDs in the web-schema shape used by /api/aed-list and the CSV export."""
+def _load_items_uncached() -> tuple[list[dict[str, Any]], dict[str, tuple[str, str]]]:
+    """All stored AEDs in the web-schema shape, plus {item id: (zrodlo, zrodlo_id)} to find the table row again."""
     items = []
+    keys: dict[str, tuple[str, str]] = {}
     with _connect() as conn:
         for zrodlo, zrodlo_id, nazwa, adres, gdzie, lat, lon, dost, godz, status, oper, tel in conn.execute(LIST_SQL):
             street, postcode, city = split_address(adres)
+            item_id = zrodlo_id if zrodlo == SOURCE else f"{zrodlo}:{zrodlo_id}"
+            keys[item_id] = (zrodlo, zrodlo_id)
             items.append(
                 {
-                    "id_zewnetrzne": zrodlo_id if zrodlo == SOURCE else f"{zrodlo}:{zrodlo_id}",
+                    "id_zewnetrzne": item_id,
                     "nazwa_obiektu": nazwa or "",
                     "miasto": city,
                     "kod_pocztowy": postcode,
@@ -256,4 +262,35 @@ def _load_items_uncached() -> list[dict[str, Any]]:
                     "kontakt_telefon": tel or "",
                 }
             )
-    return items
+    return items, keys
+
+
+def find_item(item_id: str) -> dict[str, Any] | None:
+    """One cached AED by its list id (`osm:node/1`, `ZGL-AB12CD`, ...), or None."""
+    load_items()
+    with _cache_lock:
+        return _cache["by_id"].get(item_id)
+
+
+def store_address(item_id: str, adres: str) -> dict[str, Any] | None:
+    """Persist a geocoded address for an AED that has none, and update the cached copy in place.
+
+    The row is only written while `adres` is still empty, so an address entered by a person is never overwritten.
+    Returns the updated item (street/postcode/city filled in), or None if the id is unknown.
+    """
+    load_items()
+    with _cache_lock:
+        key = _cache["keys"].get(item_id)
+        item = _cache["by_id"].get(item_id)
+    if key is None or item is None:
+        return None
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE defibrylatory SET adres = %s WHERE zrodlo = %s AND zrodlo_id = %s AND (adres IS NULL OR adres = '')",
+            (adres, *key),
+        )
+    street, postcode, city = split_address(adres)
+    with _cache_lock:  # keep the cache (and the feed/export built from it) in step without reloading every row
+        item.update(ulica_i_numer=street, kod_pocztowy=postcode, miasto=city)
+        _cache["fingerprint"] = _fingerprint(_cache["items"])
+    return item

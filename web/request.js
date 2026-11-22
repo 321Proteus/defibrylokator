@@ -160,6 +160,49 @@ function resetMarkers() {
     markerByKey.clear();
 }
 
+function popupHtml(item) {
+    const st = getStatusInfo(item.status);
+    const dist = distanceFromUser(item);
+    const distLine = dist !== null
+        ? `<br><strong>Odległość:</strong> ${escapeHtml(formatDistance(dist))}`
+        : '';
+    const address = itemAddress(item);
+    return `
+        <div style="font-family: Inter, sans-serif; font-size: 13px; line-height: 1.45;">
+            <strong>${escapeHtml(address || itemTitle(item))}</strong><br>
+            ${address && item.nazwa_obiektu && item.nazwa_obiektu !== 'Defibrylator AED' ? `${escapeHtml(item.nazwa_obiektu)}<br>` : ''}
+            ${item.opis_lokalizacji ? `<em>${escapeHtml(item.opis_lokalizacji)}</em><br>` : ''}
+            <strong>Dostępność:</strong> ${escapeHtml(item.dostepnosc || 'brak danych')}<br>
+            <strong>Status:</strong> ${escapeHtml(st.label)}${distLine}
+        </div>
+    `;
+}
+
+// Większość punktów z OSM nie ma adresu. Serwer ustala go raz (geokodowanie odwrotne) i zapisuje w bazie,
+// więc kolejne wejścia dostają go od razu. Pytamy tylko o to, co użytkownik widzi: karty z listy i otwierane dymki.
+const addressRequests = new Map();
+
+function resolveAddress(item) {
+    if (itemAddress(item) || !item.id_zewnetrzne) return Promise.resolve(false);
+    if (!addressRequests.has(item.id_zewnetrzne)) {
+        addressRequests.set(item.id_zewnetrzne, fetch(`/api/aed-address?id=${encodeURIComponent(item.id_zewnetrzne)}`)
+            .then(res => (res.ok ? res.json() : null))
+            .then(data => {
+                if (!data || !data.found) return false;
+                item.ulica_i_numer = data.ulica_i_numer || '';
+                item.kod_pocztowy = data.kod_pocztowy || '';
+                item.miasto = data.miasto || '';
+                return true;
+            })
+            .catch(() => false)
+            .then(found => {
+                if (!found) setTimeout(() => addressRequests.delete(item.id_zewnetrzne), 60000); // spróbuj ponownie później
+                return found;
+            }));
+    }
+    return addressRequests.get(item.id_zewnetrzne);
+}
+
 function addMarkers(items) {
     if (!aedMarkersLayer) return;
     if (!aedIcon) {
@@ -176,21 +219,12 @@ function addMarkers(items) {
     items.forEach(item => {
         const key = itemKey(item);
         if (markerByKey.has(key)) return;
-        const st = getStatusInfo(item.status);
-        const dist = distanceFromUser(item);
-        const distLine = dist !== null
-            ? `<br><strong>Odległość:</strong> ${escapeHtml(formatDistance(dist))}`
-            : '';
-        const popupHtml = `
-            <div style="font-family: Inter, sans-serif; font-size: 13px; line-height: 1.45;">
-                <strong>${escapeHtml(itemTitle(item))}</strong><br>
-                ${itemAddress(item) ? `${escapeHtml(itemAddress(item))}<br>` : ''}
-                ${item.opis_lokalizacji ? `<em>${escapeHtml(item.opis_lokalizacji)}</em><br>` : ''}
-                <strong>Dostępność:</strong> ${escapeHtml(item.dostepnosc || 'brak danych')}<br>
-                <strong>Status:</strong> ${escapeHtml(st.label)}${distLine}
-            </div>
-        `;
-        const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon }).bindPopup(popupHtml);
+        const marker = L.marker([item.szerokosc_geo, item.dlugosc_geo], { icon: aedIcon }).bindPopup(() => popupHtml(item));
+        marker.on('popupopen', () => {
+            resolveAddress(item).then(found => {
+                if (found && marker.isPopupOpen()) marker.setPopupContent(popupHtml(item));
+            });
+        });
         markers.push(marker);
         markerByKey.set(key, marker);
     });
@@ -211,48 +245,81 @@ function showMoreMarkers(items) {
     addMarkers(items);
 }
 
+function cardHtml(item) {
+    const st = getStatusInfo(item.status);
+    const dist = distanceFromUser(item);
+    const distBadge = dist !== null
+        ? `<span class="distance-badge">${escapeHtml(formatDistance(dist))}</span>`
+        : '';
+
+    const address = itemAddress(item);
+    const primaryHeading = address
+        || item.nazwa_obiektu
+        || `${Number(item.szerokosc_geo).toFixed(5)}, ${Number(item.dlugosc_geo).toFixed(5)}`;
+    const secondaryName = address && item.nazwa_obiektu && item.nazwa_obiektu !== 'Defibrylator AED'
+        ? `<p class="nearest-card-meta"><strong>${escapeHtml(item.nazwa_obiektu)}</strong></p>`
+        : '';
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.szerokosc_geo},${item.dlugosc_geo}`)}`;
+
+    return `
+        <article class="nearest-card" role="link" tabindex="0"
+                 data-id="${escapeHtml(item.id_zewnetrzne || '')}"
+                 data-gmaps-url="${escapeHtml(googleMapsUrl)}"
+                 aria-label="Otwórz w Mapach Google: ${escapeHtml(primaryHeading)}">
+            <div class="nearest-card-top">
+                <span class="nearest-card-title">${escapeHtml(primaryHeading)}</span>
+                ${distBadge}
+            </div>
+            ${secondaryName}
+            ${item.opis_lokalizacji ? `<p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>` : ''}
+            <span class="status-pill ${st.cls}">${escapeHtml(st.label)} • ${escapeHtml(item.dostepnosc || 'brak danych')}</span>
+        </article>
+    `;
+}
+
+function bindCard(card) {
+    const openInGoogleMaps = () => {
+        const url = card.dataset.gmapsUrl;
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    };
+    card.addEventListener('click', openInGoogleMaps);
+    card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openInGoogleMaps();
+        }
+    });
+}
+
+let listVersion = 0;
+
 function renderNearestList(items) {
     const listContainer = document.getElementById('nearest-list');
     if (!listContainer) return;
+    const version = ++listVersion;
 
     if (items.length === 0) {
         listContainer.innerHTML = '<p class="helper-text">Brak urządzeń AED ze współrzędnymi GPS w aktualnej bazie danych.</p>';
         return;
     }
 
-    listContainer.innerHTML = items.map(item => {
-        const st = getStatusInfo(item.status);
-        const dist = distanceFromUser(item);
-        const distBadge = dist !== null
-            ? `<span class="distance-badge">${escapeHtml(formatDistance(dist))}</span>`
-            : '';
-        return `
-            <article class="nearest-card" data-key="${escapeHtml(itemKey(item))}">
-                <div class="nearest-card-top">
-                    <span class="nearest-card-title">${escapeHtml(itemTitle(item))}</span>
-                    ${distBadge}
-                </div>
-                ${itemAddress(item) ? `<p class="nearest-card-meta">${escapeHtml(itemAddress(item))}</p>` : ''}
-                ${item.opis_lokalizacji ? `<p class="nearest-card-meta">${escapeHtml(item.opis_lokalizacji)}</p>` : ''}
-                <span class="status-pill ${st.cls}">${escapeHtml(st.label)} • ${escapeHtml(item.dostepnosc || 'brak danych')}</span>
-            </article>
-        `;
-    }).join('');
+    listContainer.innerHTML = items.map(cardHtml).join('');
+    listContainer.querySelectorAll('.nearest-card').forEach(bindCard);
 
-    listContainer.querySelectorAll('.nearest-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const marker = markerByKey.get(card.dataset.key);
-            if (marker && aedMap) {
-                aedMap.setView(marker.getLatLng(), 16);
-                if (typeof aedMarkersLayer.zoomToShowLayer === 'function') {
-                    // znacznik może siedzieć w klastrze: rozbij klaster, potem otwórz dymek
-                    aedMarkersLayer.zoomToShowLayer(marker, () => marker.openPopup());
-                } else {
-                    marker.openPopup();
-                }
-            }
-        });
-    });
+    // Karty bez adresu uzupełniamy po kolei od najbliższej (serwer geokoduje ~1 punkt/s); wynik wraca do karty i dymka.
+    (async () => {
+        for (const item of items) {
+            if (version !== listVersion) return; // lista została przerysowana
+            if (!(await resolveAddress(item)) || version !== listVersion) continue;
+            const card = Array.from(listContainer.querySelectorAll('.nearest-card')).find(c => c.dataset.id === (item.id_zewnetrzne || ''));
+            if (!card) continue;
+            const fresh = document.createElement('div');
+            fresh.innerHTML = cardHtml(item).trim();
+            const replacement = fresh.firstElementChild;
+            card.replaceWith(replacement);
+            bindCard(replacement);
+        }
+    })();
 }
 
 // Pierwsze załadowanie wokół punktu (lokalizacja użytkownika albo środek Polski): znaczniki, lista i kadr mapy.
