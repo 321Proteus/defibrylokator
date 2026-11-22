@@ -89,6 +89,20 @@ async def serve_js():
     return FileResponse(js_path, media_type="application/javascript")
 
 
+@app.get("/favicon.svg")
+async def serve_favicon():
+    icon_path = BASE_DIR.parent / "assets" / "icon.svg"
+    if not icon_path.exists():
+        raise HTTPException(status_code=404, detail="Brak pliku assets/icon.svg")
+    return FileResponse(icon_path, media_type="image/svg+xml")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def serve_favicon_ico():
+    # przeglądarki bez obsługi <link rel="icon"> proszą o /favicon.ico
+    return RedirectResponse("/favicon.svg", status_code=301)
+
+
 @app.get("/icon.png")
 async def serve_logo():
     logo_path = BASE_DIR / "icon.png"
