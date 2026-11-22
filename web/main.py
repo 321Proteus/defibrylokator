@@ -1,41 +1,46 @@
-from typing import Any, Dict
-from fastapi import FastAPI, Request, UploadFile, File, Form, Body, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
-from pathlib import Path
-import shutil
 import hashlib
 import json
 import os
-import re
+import shutil
 import uuid
+from pathlib import Path
+from typing import Any, Dict
+
 import pandas as pd
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+
 import aed_db
 import feed
-from fastapi.concurrency import run_in_threadpool
+from pydantic import ValidationError
+
 from validator import (
     ADDRESS_NOT_FOUND_MSG,
-    POSTCODE_RE,
+    INDIVIDUAL_SUBMITTER,
+    LAT_RANGE,
+    LON_RANGE,
+    AEDRecord,
+    errors_from,
     find_address_details,
     find_coordinates,
-    find_postcode,
+    pl_plural,
     process_and_validate_excel,
+    validate_single_submission,
 )
 
 app = FastAPI(title="Polska Baza AED - Ogólnopolski system zgłaszania i aktualizacji lokalizacji defibrylatorów AED.")
+# /api/aed-list i eksport CSV mają kilka MB przy dziesiątkach tysięcy rekordów; JSON kompresuje się ~10x.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 BASE_DIR = Path(__file__).resolve().parent
-MASTER_CSV_PATH = BASE_DIR / "master_aed_dane_gov.csv"
+MASTER_CSV_PATH = BASE_DIR / "master_aed_dane_gov.csv"  # tylko gdy brak bazy (tryb lokalny bez DATABASE_URL / DB_*)
 TEMP_DIR = BASE_DIR / "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-ALLOWED_STATUSES = {"sprawny", "w_serwisie", "nieaktywny"}
-ALLOWED_AVAILABILITIES = {"24/7", "godziny_otwarcia", "ograniczona"}
-PHONE_CLEAN_RE = re.compile(r"[\s\-\(\)]")
-PL_PHONE_RE = re.compile(r"[1-8]\d{8}")
-CITY_RE = re.compile(r"^[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż\s\-]{2,60}$")
-LAT_RANGE = (49.0, 54.9)
-LON_RANGE = (14.1, 24.2)
-HAS_LETTER_RE = re.compile(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]")
+SAVE_FAILED_MSG = "Nie udało się zapisać danych w bazie. Spróbuj ponownie później."
+DECLARATION_MSG = "Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
 
 
 def merge_into_master(new_df: pd.DataFrame) -> None:
@@ -99,7 +104,6 @@ async def serve_favicon():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def serve_favicon_ico():
-    # przeglądarki bez obsługi <link rel="icon"> proszą o /favicon.ico
     return RedirectResponse("/favicon.svg", status_code=301)
 
 
@@ -174,10 +178,7 @@ async def upload_excel(
     declaration: bool = Form(False)
 ):
     if not declaration:
-        raise HTTPException(
-            status_code=400,
-            detail="Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
-        )
+        raise HTTPException(status_code=400, detail=DECLARATION_MSG)
 
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
         raise HTTPException(status_code=400, detail="Dozwolone są wyłącznie pliki Excel (.xlsx, .xls).")
@@ -198,133 +199,69 @@ async def upload_excel(
             "status": "rejected",
             "reason": result["error"],
             "details": result.get("missing_columns", []),
+            "extra_columns": result.get("extra_columns", []),
         }
 
-    if result["total_rows"] == 0:
+    if result.get("total_rows", 0) == 0:
         return {
             "status": "rejected",
             "reason": "Przesłany arkusz Excel nie zawiera żadnych wierszy z danymi.",
             "details": [],
         }
 
-    if not result["success"]:
+    if not result.get("success") or result.get("valid_rows", 0) == 0:
+        n_errors = len(result.get("errors", []))
         return {
             "status": "validation_errors",
-            "message": f"Znaleziono błędy w {len(result['errors'])} polach (na {result['total_rows']} wierszy). Popraw plik i prześlij ponownie.",
+            "message": (
+                f"Znaleziono {n_errors} {pl_plural(n_errors, 'błąd', 'błędy', 'błędów')} w pliku "
+                f"({result['total_rows']} {pl_plural(result['total_rows'], 'wiersz', 'wiersze', 'wierszy')} danych). "
+                "Plik został odrzucony — popraw błędy i prześlij ponownie."
+            ),
             "total_rows": result["total_rows"],
-            "errors": result["errors"],
+            "errors": result.get("errors", []),
         }
 
     try:
         await run_in_threadpool(store_records, result["clean_dataframe"])
     except Exception as exc:
         print(f"/upload-aed: błąd zapisu: {exc}")
-        raise HTTPException(status_code=503, detail="Nie udało się zapisać danych w bazie. Spróbuj ponownie później.")
+        raise HTTPException(status_code=503, detail=SAVE_FAILED_MSG)
 
+    n = result["valid_rows"]
     return {
         "status": "accepted",
-        "message": "Dziękujemy za wysłanie bazy danych!\nTwój wkład może komuś ocalić życie.",
+        "message": (
+            f"Dziękujemy za wysłanie bazy danych! Zweryfikowano i przyjęto {n} {pl_plural(n, 'rekord', 'rekordy', 'rekordów')}."
+            "\nTwój wkład może komuś ocalić życie."
+        ),
+    }
+
+
+def _form_errors_response(errors: list) -> dict:
+    n = len(errors)
+    return {
+        "status": "validation_errors",
+        "message": f"Znaleziono {n} {pl_plural(n, 'błąd', 'błędy', 'błędów')} w formularzu. Popraw go i spróbuj ponownie.",
+        "errors": errors,
     }
 
 
 @app.post("/add-aed")
 async def add_single_aed(payload: Dict[str, Any] = Body(...)):
     if payload.get("declaration") is not True:
-        raise HTTPException(
-            status_code=400,
-            detail="Aby przesłać dane, należy zaakceptować oświadczenie o ich rzetelności."
-        )
+        raise HTTPException(status_code=400, detail=DECLARATION_MSG)
 
-    errors = []
-
-    nazwa_obiektu = str(payload.get("nazwa_obiektu", "")).strip()
-    miasto = str(payload.get("miasto", "")).strip()
-    adres = str(payload.get("adres", "")).strip()
-    opis_lokalizacji = str(payload.get("opis_lokalizacji", "")).strip()
-    status = str(payload.get("status", "")).strip()
-    dostepnosc = str(payload.get("dostepnosc", "")).strip()
-    kontakt_telefon = str(payload.get("kontakt_telefon", "")).strip()
-
-    if not nazwa_obiektu or len(nazwa_obiektu) < 3 or not HAS_LETTER_RE.search(nazwa_obiektu):
-        errors.append({
-            "pole": "nazwa_obiektu",
-            "komunikat": "Wpisz poprawną nazwę obiektu (minimum 3 znaki, musi zawierać litery)."
-        })
-
-    if not miasto or not CITY_RE.fullmatch(miasto):
-        errors.append({
-            "pole": "miasto",
-            "komunikat": "Wpisz poprawną nazwę miasta (tylko litery, spacje i myślniki, bez cyfr)."
-        })
-
-    if not adres or len(adres) < 3 or not HAS_LETTER_RE.search(adres):
-        errors.append({
-            "pole": "adres",
-            "komunikat": "Wpisz poprawny adres (minimum 3 znaki, np. ul. Rakowiecka 25)."
-        })
-
-    if not opis_lokalizacji or len(opis_lokalizacji) < 4 or not HAS_LETTER_RE.search(opis_lokalizacji):
-        errors.append({
-            "pole": "opis_lokalizacji",
-            "komunikat": "Wpisz dokładniejszy opis lokalizacji (minimum 4 znaki, np. Parter przy recepcji)."
-        })
-
-    if status not in ALLOWED_STATUSES:
-        errors.append({
-            "pole": "status",
-            "komunikat": "Wybierz poprawny status (sprawny, w_serwisie lub nieaktywny)."
-        })
-
-    if dostepnosc and dostepnosc not in ALLOWED_AVAILABILITIES:
-        errors.append({
-            "pole": "dostepnosc",
-            "komunikat": "Nieprawidłowa wartość dostępności."
-        })
-
-    if kontakt_telefon:
-        digits = PHONE_CLEAN_RE.sub("", kontakt_telefon)
-        if digits.startswith("+48"):
-            digits = digits[3:]
-        elif digits.startswith("0048"):
-            digits = digits[4:]
-        if not PL_PHONE_RE.fullmatch(digits):
-            errors.append({
-                "pole": "kontakt_telefon",
-                "komunikat": "Wpisz poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
-            })
+    # Reguły pól są w validator.py (te same co dla pliku Excel); tu zostaje tylko uzupełnianie danych.
+    draft, errors = validate_single_submission(payload)
+    if errors:
+        return _form_errors_response(errors)
 
     # Współrzędne i kod pocztowy mogą pochodzić z podglądu na mapie (użytkownik mógł je poprawić);
-    # serwer niczego nie przyjmuje bez sprawdzenia.
-    lat_raw = str(payload.get("szerokosc_geo") or "").strip().replace(",", ".")
-    lon_raw = str(payload.get("dlugosc_geo") or "").strip().replace(",", ".")
-    kod_pocztowy = str(payload.get("kod_pocztowy") or "").strip()
-    lat = lon = None
-
-    if lat_raw or lon_raw:
-        try:
-            lat, lon = float(lat_raw), float(lon_raw)
-        except ValueError:
-            errors.append({"pole": "szerokosc_geo", "komunikat": "Wpisz współrzędne jako liczby, np. 52.2297 i 21.0122."})
-        else:
-            if not (LAT_RANGE[0] <= lat <= LAT_RANGE[1] and LON_RANGE[0] <= lon <= LON_RANGE[1]):
-                errors.append({
-                    "pole": "szerokosc_geo",
-                    "komunikat": f"Współrzędne poza granicami Polski (szerokość {LAT_RANGE[0]}–{LAT_RANGE[1]}, długość {LON_RANGE[0]}–{LON_RANGE[1]}).",
-                })
-
-    if kod_pocztowy and not POSTCODE_RE.fullmatch(kod_pocztowy):
-        errors.append({"pole": "kod_pocztowy", "komunikat": "Kod pocztowy musi mieć format 00-000 (np. 02-517)."})
-
-    if errors:
-        return {
-            "status": "validation_errors",
-            "message": f"Znaleziono błędy w {len(errors)} polach. Popraw formularz i spróbuj ponownie.",
-            "errors": errors,
-        }
-
-    # Brakujące dane uzupełniamy z adresu (geokodowanie) i ze współrzędnych (geokodowanie odwrotne).
+    # brakujące uzupełniamy z adresu (geokodowanie) i ze współrzędnych (geokodowanie odwrotne).
+    lat, lon, kod_pocztowy = draft.szerokosc_geo, draft.dlugosc_geo, draft.kod_pocztowy
     if lat is None:
-        coords = await run_in_threadpool(find_coordinates, adres, miasto)
+        coords = await run_in_threadpool(find_coordinates, draft.ulica_i_numer, draft.miasto)
         if coords is None:
             return {
                 "status": "validation_errors",
@@ -334,29 +271,38 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
         lat, lon = coords
     lat, lon = round(lat, 6), round(lon, 6)
     if not kod_pocztowy:
-        kod_pocztowy = await run_in_threadpool(find_postcode, lat, lon) or ""
+        _, kod_pocztowy = await run_in_threadpool(find_address_details, lat, lon)
 
     record = {
         "id_zewnetrzne": f"ZGL-{uuid.uuid4().hex[:6].upper()}",
-        "nazwa_obiektu": nazwa_obiektu,
-        "miasto": miasto,
-        "kod_pocztowy": kod_pocztowy,
-        "ulica_i_numer": adres,
-        "opis_lokalizacji": opis_lokalizacji,
+        "nazwa_obiektu": draft.nazwa_obiektu,
+        "miasto": draft.miasto,
+        "kod_pocztowy": kod_pocztowy or "",
+        "ulica_i_numer": draft.ulica_i_numer,
+        "opis_lokalizacji": draft.opis_lokalizacji,
         "szerokosc_geo": lat,
         "dlugosc_geo": lon,
-        "dostepnosc": dostepnosc or "nieokreslona",
+        "dostepnosc": draft.dostepnosc or "nieokreslona",
         "godziny_otwarcia": "",
-        "status": status,
-        "dysponent": "Zgłoszenie indywidualne",
-        "kontakt_telefon": kontakt_telefon,
+        "status": draft.status,
+        "dysponent": INDIVIDUAL_SUBMITTER,
+        "kontakt_telefon": draft.kontakt_telefon,
     }
+
+    # Pełny rekord musi spełniać te same reguły co wiersz z Excela (np. kod pocztowy ustalony z geokodowania).
+    # "nieokreslona" to wartość tylko formularza, więc sprawdzamy rekord z dostępnością zastępczą.
+    try:
+        AEDRecord(**{**record, "dostepnosc": draft.dostepnosc or "24/7"})
+    except ValidationError as exc:
+        return _form_errors_response([
+            {**e, "pole": "adres" if e["pole"] == "ulica_i_numer" else e["pole"]} for e in errors_from(exc)
+        ])
 
     try:
         await run_in_threadpool(store_records, pd.DataFrame([record]))
     except Exception as exc:
         print(f"/add-aed: błąd zapisu: {exc}")
-        raise HTTPException(status_code=503, detail="Nie udało się zapisać danych w bazie. Spróbuj ponownie później.")
+        raise HTTPException(status_code=503, detail=SAVE_FAILED_MSG)
 
     return {
         "status": "accepted",
@@ -414,13 +360,13 @@ async def _feed_content(request: Request) -> bytes:
     """
     base = os.environ.get("PUBLIC_BASE_URL") or str(request.base_url)
     if aed_db.enabled():
-        items = await run_in_threadpool(aed_db.load_items)
+        total = len(await run_in_threadpool(aed_db.load_items))
+        fingerprint = await run_in_threadpool(aed_db.data_fingerprint)
     else:
         items = load_items_from_csv()
-    fingerprint = hashlib.md5(
-        json.dumps(sorted(items, key=lambda i: str(i["id_zewnetrzne"])), sort_keys=True, default=str).encode("utf-8")
-    ).hexdigest()[:12]
-    return feed.build_feed(f"{base.rstrip('/')}/dane-gov-export.csv?v={fingerprint}", len(items))
+        total = len(items)
+        fingerprint = hashlib.md5(json.dumps(items, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:12]
+    return feed.build_feed(f"{base.rstrip('/')}/dane-gov-export.csv?v={fingerprint}", total)
 
 
 @app.api_route("/aed-feed.xml", methods=["GET", "HEAD"])
