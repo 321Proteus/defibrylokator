@@ -99,7 +99,6 @@ async def serve_favicon():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def serve_favicon_ico():
-    # przeglądarki bez obsługi <link rel="icon"> proszą o /favicon.ico
     return RedirectResponse("/favicon.svg", status_code=301)
 
 
@@ -198,21 +197,22 @@ async def upload_excel(
             "status": "rejected",
             "reason": result["error"],
             "details": result.get("missing_columns", []),
+            "extra_columns": result.get("extra_columns", []),
         }
 
-    if result["total_rows"] == 0:
+    if result.get("total_rows", 0) == 0:
         return {
             "status": "rejected",
             "reason": "Przesłany arkusz Excel nie zawiera żadnych wierszy z danymi.",
             "details": [],
         }
 
-    if not result["success"]:
+    if not result.get("success") or result.get("valid_rows", 0) == 0:
         return {
             "status": "validation_errors",
-            "message": f"Znaleziono błędy w {len(result['errors'])} polach (na {result['total_rows']} wierszy). Popraw plik i prześlij ponownie.",
+            "message": f"Znaleziono błędy w {len(result.get('errors', []))} polach (na {result['total_rows']} wierszy). Plik został odrzucony — popraw błędy i prześlij ponownie.",
             "total_rows": result["total_rows"],
-            "errors": result["errors"],
+            "errors": result.get("errors", []),
         }
 
     try:
@@ -223,7 +223,7 @@ async def upload_excel(
 
     return {
         "status": "accepted",
-        "message": "Dziękujemy za wysłanie bazy danych!\nTwój wkład może komuś ocalić życie.",
+        "message": f"Dziękujemy za wysłanie bazy danych! Zweryfikowano i przyjęto {result['valid_rows']} rekordów.\nTwój wkład może komuś ocalić życie.",
     }
 
 
@@ -293,8 +293,6 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
                 "komunikat": "Wpisz poprawny 9-cyfrowy polski numer telefonu (np. +48 22 443 62 00 lub 500 600 700)."
             })
 
-    # Współrzędne i kod pocztowy mogą pochodzić z podglądu na mapie (użytkownik mógł je poprawić);
-    # serwer niczego nie przyjmuje bez sprawdzenia.
     lat_raw = str(payload.get("szerokosc_geo") or "").strip().replace(",", ".")
     lon_raw = str(payload.get("dlugosc_geo") or "").strip().replace(",", ".")
     kod_pocztowy = str(payload.get("kod_pocztowy") or "").strip()
@@ -322,7 +320,6 @@ async def add_single_aed(payload: Dict[str, Any] = Body(...)):
             "errors": errors,
         }
 
-    # Brakujące dane uzupełniamy z adresu (geokodowanie) i ze współrzędnych (geokodowanie odwrotne).
     if lat is None:
         coords = await run_in_threadpool(find_coordinates, adres, miasto)
         if coords is None:
@@ -407,11 +404,7 @@ async def get_machine_readable_dataset():
 
 
 async def _feed_content(request: Request) -> bytes:
-    """Feed XML; the resource URL points back at this app (PUBLIC_BASE_URL overrides the request's host).
-
-    MCOD re-downloads a link resource only when its metadata changes, so the CSV URL carries a
-    fingerprint of the data (?v=...): new or edited AEDs -> new URL -> MCOD refreshes the file.
-    """
+    """Feed XML; the resource URL points back at this app (PUBLIC_BASE_URL overrides the request's host)."""
     base = os.environ.get("PUBLIC_BASE_URL") or str(request.base_url)
     if aed_db.enabled():
         items = await run_in_threadpool(aed_db.load_items)
